@@ -232,7 +232,7 @@ async function renderStores() {
       '<input type="search" placeholder="Search store" value="' + esc(S.q || '') + '" oninput="S.q=this.value.toLowerCase();renderStores()" style="margin-left:auto">' +
       '<button class="btn" onclick="setShown(true)">Turn on shown</button><button class="btn" onclick="setShown(false)">Turn off shown</button>' +
       '<button class="btn primary" ' + (pending ? '' : 'disabled') + ' onclick="saveStores()">Save' + (pending ? ' (' + pending + ')' : '') + '</button></div>' +
-    '<div class="chips">' + cities.map(c => '<span class="chip ' + (c === S.cityFilter ? 'on' : '') + '" onclick="S.cityFilter=\'' + esc(c) + '\';renderStores()">' + esc(c) +
+    '<div class="chips">' + cities.map(c => '<span class="chip ' + (c === S.cityFilter ? 'on' : '') + '" data-city="' + esc(c) + '" onclick="S.cityFilter=this.dataset.city;renderStores()">' + esc(c) +
       (c === 'All' ? '' : ' ' + S.stores.filter(s => s.city === c && active(s.id)).length + '/' + S.stores.filter(s => s.city === c).length) + '</span>').join('') + '</div>' +
     '<div class="stores">' + shown.map(s => '<div class="store"><div>' + esc(s.name) + '<span class="city">' + esc(s.city) + '</span></div>' +
       '<label class="toggle"><input type="checkbox" ' + (active(s.id) ? 'checked' : '') + ' onchange="flip(\'' + s.id + '\',this.checked)"><span></span></label></div>').join('') + '</div>' +
@@ -386,7 +386,7 @@ async function renderAccess() {
   const brandName = k => k === '*' ? 'All brands' : ((S.home.brands.find(b => b.key === k) || {}).name || k);
   $('tab').innerHTML = '<div class="card"><h3>Who can use this dashboard</h3>' +
     '<p class="muted">You see every brand. A brand manager sees only the brands ticked for them. Everyone signs in at this same link with a code sent to their email, and stays signed in for 30 days on each device. Removing someone here signs them out everywhere.</p>' +
-    tbl(['Email','Brands',''], list.map(r => [esc(r.email), esc(String(r.brands).split(',').map(x => brandName(x.trim())).join(', ')), '<button class="btn" onclick="delAdmin(\'' + esc(r.email) + '\')">Remove</button>'])) +
+    tbl(['Email','Brands',''], list.map(r => [esc(r.email), esc(String(r.brands).split(',').map(x => brandName(x.trim())).join(', ')), '<button class="btn" data-email="' + esc(r.email) + '" onclick="delAdmin(this.dataset.email)">Remove</button>'])) +
     '<div style="margin-top:14px"><b>Add or update a person</b></div>' +
     '<div class="row" style="margin-top:8px"><input type="text" id="aEmail" placeholder="email (or paste Name &lt;email&gt;)" style="min-width:320px"></div>' +
     '<div class="chips" id="aBrands">' + S.home.brands.map(b => '<label class="chip"><input type="checkbox" value="' + b.key + '"' + (b.key === S.brand.key ? ' checked' : '') + '> ' + esc(b.name) + '</label>').join('') + '</div>' +
