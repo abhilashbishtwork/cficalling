@@ -144,7 +144,41 @@ async function goHome() {
   if (S.home.role === 'none') { $('app').innerHTML = '<div class="card">You don\'t have access yet. Ask abhilash@curefoods.in to add <b>' + esc(S.home.me) + '</b>.</div>'; return; }
   $('app').innerHTML = '<div class="brands">' + S.home.brands.map(b =>
     '<div class="card brand" onclick="openBrand(\'' + b.key + '\')"><div class="name">' + esc(b.name) + '</div>' +
-    '<span class="pill ' + (b.status === 'Live' ? '' : 'off') + '">' + esc(b.status || 'Not set up') + '</span></div>').join('') + '</div>';
+    '<span class="pill ' + (b.status === 'Live' ? '' : 'off') + '">' + esc(b.status || 'Not set up') + '</span></div>').join('') + '</div>' +
+    (S.home.role === 'owner' ? '<div id="ownerSummary" style="margin-top:24px"><div class="loading">Loading summary…</div></div>' : '');
+  if (S.home.role === 'owner') renderOwnerSummary();
+}
+
+// Owner-only: all brands, last full days. Today is partial, so it's shown apart.
+async function renderOwnerSummary() {
+  const data = await call('apiOwnerSummary');
+  const box = $('ownerSummary'); if (!box) return;
+  const today = data[0] ? data[0].today : '';
+  const dayList = Array.from(new Set([].concat(...data.map(b => b.days.map(d => d.date))))).filter(d => d < today).sort().reverse().slice(0, 7);
+  const y = dayList[0], dby = dayList[1];
+  const get = (b, d) => b.days.find(x => x.date === d) || { orders: 0, placed: 0, heard: 0 };
+  const sum = (d, f) => data.reduce((a, b) => a + get(b, d)[f], 0);
+  const fmt = n => n.toLocaleString('en-IN');
+  const delta = (a, b) => !b ? '' : '<span style="color:' + (a >= b ? 'var(--accent)' : 'var(--bad)') + '">' + (a >= b ? '▲' : '▼') + ' ' + Math.abs(Math.round(100 * (a - b) / b)) + '%</span>';
+  const label = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }) : '';
+  const spark = b => { const vals = dayList.slice().reverse().map(d => get(b, d).placed); const m = Math.max(1, ...vals);
+    return '<span style="display:inline-flex;align-items:flex-end;gap:2px;height:22px">' + vals.map(v => '<i style="display:inline-block;width:7px;height:' + Math.max(2, Math.round(22 * v / m)) + 'px;background:var(--accent);border-radius:1px"></i>').join('') + '</span>'; };
+  const row = (name, yv, dv, sp, wk) => '<tr><td>' + name + '</td><td class="n">' + fmt(yv.placed) + ' ' + delta(yv.placed, dv.placed) + '</td><td class="n">' + pct(yv.heard, yv.placed) + '</td><td class="n">' + pct(yv.placed, yv.orders) + '</td><td class="n">' + fmt(wk) + '</td><td>' + sp + '</td></tr>';
+  const live = data.filter(b => b.days.length);
+  const total = { orders: sum(y, 'orders'), placed: sum(y, 'placed'), heard: sum(y, 'heard') }, totPrev = { placed: sum(dby, 'placed') };
+  const wkTotal = dayList.reduce((a, d) => a + sum(d, 'placed'), 0);
+  box.innerHTML = '<div class="card"><h3>All brands summary <span class="muted" style="font-weight:400">· only you can see this</span></h3>' +
+    '<div class="kpis">' +
+      '<div class="kpi"><div class="v">' + fmt(total.placed) + '</div><div class="l">Calls made ' + label(y) + ' ' + delta(total.placed, totPrev.placed) + ' vs ' + label(dby) + '</div></div>' +
+      '<div class="kpi"><div class="v">' + fmt(total.heard) + '</div><div class="l">Heard the full message (' + pct(total.heard, total.placed) + ')</div></div>' +
+      '<div class="kpi"><div class="v">' + pct(total.placed, total.orders) + '</div><div class="l">Call rate: calls ÷ ' + fmt(total.orders) + ' Swiggy + Zomato orders</div></div>' +
+      '<div class="kpi"><div class="v">' + fmt(wkTotal) + '</div><div class="l">Calls in the last ' + dayList.length + ' full days</div></div>' +
+    '</div>' +
+    '<table><tr><th>Brand</th><th class="n">Calls ' + label(y) + '</th><th class="n">Heard %</th><th class="n">Call rate</th><th class="n">Last ' + dayList.length + ' days</th><th>Trend</th></tr>' +
+      live.map(b => row(esc(b.name), get(b, y), get(b, dby), spark(b), dayList.reduce((a, d) => a + get(b, d).placed, 0))).join('') +
+      '<tr style="font-weight:600">' + row('All brands', total, totPrev, '', wkTotal).slice(4) +
+    '</table>' +
+    '<p class="muted">Full days only (today is still in progress). Heard % = calls where the customer listened to the whole message. Trend bars = calls per day, oldest to newest.</p></div>';
 }
 
 function openBrand(key) {
