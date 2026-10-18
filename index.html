@@ -21,6 +21,10 @@
   .brand { cursor:pointer; transition:border-color .15s; }
   .brand:hover { border-color:var(--accent); }
   .brand .name { font-size:17px; font-weight:600; margin-bottom:4px; }
+  .brand { display:flex; align-items:center; gap:14px; }
+  .logo { width:52px; height:52px; border-radius:12px; object-fit:contain; background:#fff; border:1px solid var(--line); flex:none; }
+  .logo.badge { display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; color:var(--accent); background:var(--accent-soft); border:0; }
+  .logo.sm { width:28px; height:28px; border-radius:7px; font-size:10px; display:inline-flex; vertical-align:middle; }
   .pill { display:inline-block; padding:2px 9px; border-radius:20px; font-size:12px; background:var(--accent-soft); color:var(--accent); }
   .pill.off { background:#f3f4f6; color:var(--muted); }
   nav.tabs { display:flex; gap:4px; border-bottom:1px solid var(--line); margin-bottom:16px; flex-wrap:wrap; }
@@ -87,6 +91,15 @@
 
 <script>
 const S = { home:null, brand:null, tab:'overview', stores:null, storeChanges:{}, voice:null, grid:{}, paint:'', cityFilter:'All' };
+// Brand logos (logos/<key>.png); brands without one get an initials badge.
+const LOGOS = ['kk', 'sb', 'ar', 'roz', 'nomad', 'olio', 'cz', 'eatfit'];
+const INITIALS = { me: 'ME', mcrc: 'MCRC' };
+function logoHtml(key, name, small) {
+  const cls = 'logo' + (small ? ' sm' : '');
+  if (LOGOS.indexOf(key) !== -1) return '<img class="' + cls + '" src="logos/' + key + '.png" alt="">';
+  const t = INITIALS[key] || String(name || '?').split(/\s+/).map(w => w[0]).join('').slice(0, 3).toUpperCase();
+  return '<span class="' + cls + ' badge">' + esc(t) + '</span>';
+}
 const COLORS = ['#bfdbfe','#fde68a','#c7d2fe','#fbcfe8','#bbf7d0','#fed7aa','#ddd6fe'];
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -143,8 +156,8 @@ async function goHome() {
   $('me').innerHTML = esc(S.home.me) + ' · <a href="#" onclick="signOut();return false">Sign out</a>';
   if (S.home.role === 'none') { $('app').innerHTML = '<div class="card">You don\'t have access yet. Ask abhilash@curefoods.in to add <b>' + esc(S.home.me) + '</b>.</div>'; return; }
   $('app').innerHTML = '<div class="brands">' + S.home.brands.map(b =>
-    '<div class="card brand" onclick="openBrand(\'' + b.key + '\')"><div class="name">' + esc(b.name) + '</div>' +
-    '<span class="pill ' + (b.status === 'Live' ? '' : 'off') + '">' + esc(b.status || 'Not set up') + '</span></div>').join('') + '</div>' +
+    '<div class="card brand" onclick="openBrand(\'' + b.key + '\')">' + logoHtml(b.key, b.name) + '<div><div class="name">' + esc(b.name) + '</div>' +
+    '<span class="pill ' + (b.status === 'Live' ? '' : 'off') + '">' + esc(b.status || 'Not set up') + '</span></div></div>').join('') + '</div>' +
     (S.home.role === 'owner' ? '<div id="ownerSummary" style="margin-top:24px"><div class="loading">Loading summary…</div></div>' : '');
   if (S.home.role === 'owner') renderOwnerSummary();
 }
@@ -182,7 +195,7 @@ async function renderOwnerSummary() {
       '<div class="kpi"><div class="v">' + fmt(wkTotal) + '</div><div class="l">Calls in the last ' + dayList.length + (isToday ? ' days (incl. today)' : ' full days') + '</div></div>' +
     '</div>' +
     '<table><tr><th>Brand</th><th class="n">Calls ' + label(y) + '</th><th class="n">Heard %</th><th class="n">Call rate</th><th class="n">Last ' + dayList.length + ' days</th><th>Trend</th></tr>' +
-      live.map(b => row(esc(b.name), get(b, y), get(b, dby), spark(b), dayList.reduce((a, d) => a + get(b, d).placed, 0))).join('') +
+      live.map(b => row('<span style="display:inline-flex;align-items:center;gap:8px">' + logoHtml(b.key, b.name, true) + esc(b.name) + '</span>', get(b, y), get(b, dby), spark(b), dayList.reduce((a, d) => a + get(b, d).placed, 0))).join('') +
       '<tr style="font-weight:600">' + row('All brands', total, totPrev, '', wkTotal).slice(4) +
     '</table>' +
     '<p class="muted">' + (isToday ? 'Today is still in progress, so its numbers keep growing until midnight.' : 'Full days only (today is still in progress).') + ' Heard % = calls where the customer listened to the whole message. Trend bars = calls per day, oldest to newest.</p></div>';
@@ -191,7 +204,7 @@ async function renderOwnerSummary() {
 function openBrand(key) {
   S.brand = S.home.brands.find(b => b.key === key);
   S.stores = null; S.voice = null; S.storeChanges = {};
-  $('crumb2').innerHTML = '› ' + esc(S.brand.name);
+  $('crumb2').innerHTML = '› ' + logoHtml(S.brand.key, S.brand.name, true) + ' ' + esc(S.brand.name);
   showTab('overview');
 }
 
