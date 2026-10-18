@@ -8,11 +8,12 @@
   :root { --bg:#f6f7f9; --card:#fff; --ink:#1d2433; --muted:#6b7280; --line:#e5e7eb; --accent:#0f766e; --accent-soft:#e6f4f2; --warn:#b45309; --bad:#b91c1c; }
   * { box-sizing:border-box; }
   body { margin:0; font:14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--ink); }
-  header { background:var(--card); border-bottom:1px solid var(--line); padding:12px 20px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:5; }
+  header { background:var(--card); border-bottom:1px solid var(--line); padding:12px 20px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; position:sticky; top:0; z-index:5; }
   header h1 { font-size:17px; margin:0; }
   header .crumb { color:var(--muted); cursor:pointer; }
   header .crumb:hover { color:var(--accent); }
   header .me { margin-left:auto; color:var(--muted); font-size:12px; }
+  @media (max-width:480px){ header .me .em { display:none; } }
   main { max-width:1180px; margin:0 auto; padding:20px 16px 60px; }
   .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:16px; }
   .card h3 { margin:0 0 12px; font-size:15px; }
@@ -33,7 +34,7 @@
   nav.tabs { display:flex; gap:4px; border-bottom:1px solid var(--line); margin-bottom:16px; flex-wrap:wrap; }
   nav.tabs button { border:0; background:none; padding:10px 14px; font-size:14px; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; }
   nav.tabs button.on { color:var(--ink); border-bottom-color:var(--accent); font-weight:600; }
-  .kpis { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; margin-bottom:16px; }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px; margin-bottom:16px; }
   .kpi { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; }
   .kpi .v { font-size:24px; font-weight:650; }
   .kpi .l { color:var(--muted); font-size:12px; }
@@ -60,23 +61,23 @@
   .toggle span:before { content:""; position:absolute; width:16px; height:16px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.15s; }
   .toggle input:checked + span { background:var(--accent); }
   .toggle input:checked + span:before { transform:translateX(16px); }
-  .stores { max-height:520px; overflow:auto; columns:2; column-gap:24px; }
-  @media (max-width:800px){ .stores { columns:1; } }
-  .store { break-inside:avoid; }
+  .stores { max-height:520px; overflow:auto; display:grid; grid-template-columns:1fr 1fr; column-gap:24px; align-content:start; }
+  @media (max-width:800px){ .stores { grid-template-columns:1fr; } }
   .grid { border-collapse:separate; border-spacing:4px; user-select:none; }
   .grid th { text-align:center; border:0; }
   .grid th.slot { text-align:left; white-space:nowrap; }
-  .grid td { width:90px; height:40px; border-radius:6px; text-align:center; font-size:11px; cursor:pointer; border:1px solid rgba(0,0,0,.06); }
+  .grid td { width:90px; height:40px; border-radius:6px; text-align:center; font-size:11px; cursor:pointer; border:1px solid rgba(0,0,0,.06); touch-action:none; }
   .clip { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--line); flex-wrap:wrap; }
   .swatch { width:14px; height:14px; border-radius:4px; flex:none; }
   .clip .nm { font-weight:600; min-width:200px; }
   audio { height:32px; }
-  .bars { display:flex; align-items:flex-end; gap:6px; height:170px; padding-top:10px; }
-  .bar { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; font-size:10px; color:var(--muted); }
+  .bars { display:flex; align-items:flex-end; gap:6px; overflow-x:auto; height:170px; padding-top:10px; }
+  .bar { flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; font-size:10px; color:var(--muted); }
   .bar .b { width:100%; background:var(--accent); border-radius:4px 4px 0 0; min-height:2px; position:relative; }
   .bar .b .h { position:absolute; bottom:0; left:0; right:0; background:#0b4f49; border-radius:0; }
   .bar .val { color:var(--ink); font-size:11px; margin-bottom:2px; }
-  .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 16px; border-radius:8px; font-size:13px; display:none; z-index:20; }
+  @media (max-width:480px){ .bars { gap:3px; } .bar, .bar .val { font-size:8px; } }
+  .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 16px; border-radius:8px; font-size:13px; display:none; z-index:20; width:max-content; max-width:calc(100vw - 32px); }
   .err { color:var(--bad); }
   .loading { color:var(--muted); padding:30px; text-align:center; }
   .legend { display:flex; gap:14px; font-size:12px; color:var(--muted); margin-top:8px; }
@@ -85,7 +86,7 @@
 </head>
 <body>
 <header>
-  <h1 class="crumb" onclick="goHome()">Curefoods Calling</h1>
+  <h1 class="crumb" data-act="home">Curefoods Calling</h1>
   <span id="crumb2"></span>
   <span class="me" id="me"></span>
 </header>
@@ -93,7 +94,8 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const S = { home:null, brand:null, tab:'overview', stores:null, storeChanges:{}, voice:null, grid:{}, paint:'', cityFilter:'All' };
+const S = { home:null, homeP:null, brand:null, tab:null, stores:null, storeById:{}, storeChanges:{}, voice:null, grid:{}, gridDirty:false, paint:'', cityFilter:'All', subFilter:null, q:'',
+  seq:0, ov:{}, mut:{}, summary:null, sumP:null, sumAt:0, lastHash:'' };
 // Brand logos (logos/<key>.png); brands without one get an initials badge.
 const LOGOS = ['kk', 'sb', 'ar', 'me', 'mcrc', 'roz', 'nomad', 'olio', 'cz', 'eatfit'];
 const INITIALS = {};
@@ -110,77 +112,192 @@ const COLORS = ['#bfdbfe','#fde68a','#c7d2fe','#fbcfe8','#bbf7d0','#fed7aa','#dd
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pct = (a,b) => b ? Math.round(100*a/b) + '%' : '–';
+const IST = 'Asia/Kolkata';
+function istParts() {
+  const o = {};
+  new Intl.DateTimeFormat('en-GB', { timeZone: IST, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' })
+    .formatToParts(new Date()).forEach(p => { o[p.type] = p.value; });
+  return o;
+}
+const istDate = () => { const p = istParts(); return p.year + '-' + p.month + '-' + p.day; };
+const istHour = () => Number(istParts().hour) % 24;
 
 const API = 'https://script.google.com/macros/s/AKfycbzV7hjULy9OSn3UmEkgiNB-c5z4pDtANJtL3zoKBRIMVHfjNo-5fVyyBkhi2X2QkBVT/exec';
+const ROLE_KEY = 'cfi_calling_role';
+const NO_RETRY = ['apiUploadClip'];
 let TOKEN = '';
 try { TOKEN = localStorage.getItem('cfi_calling_token') || ''; } catch (e) {}
-async function post(body) {
-  const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) });
-  const j = await r.json();
+// One retry on a network error or a server (5xx / unreadable) reply.
+async function post(body, retry) {
+  let r, j;
+  try { r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) }); }
+  catch (e) { if (retry) return post(body, false); throw new Error('Could not reach the server. Check your internet connection and try again.'); }
+  if (!r.ok) { if (retry && r.status >= 500) return post(body, false); throw new Error('The server had a problem (' + r.status + '). Try again in a minute.'); }
+  try { j = await r.json(); } catch (e) { if (retry) return post(body, false); throw new Error('The server sent a reply we could not read. Try again in a minute.'); }
   if (!j.ok) throw new Error(j.error || 'Something went wrong.');
   return j.data;
 }
+const signedOutErr = () => Object.assign(new Error('Signed out.'), { signedOut: true });
 async function call(fn, ...args) {
-  if (!TOKEN) { showSignIn(); throw new Error('signed out'); }
-  try { return await post({ action: 'api', fn: fn, args: args, token: TOKEN }); }
+  if (!TOKEN) { showSignIn(); throw signedOutErr(); }
+  try { return await post({ action: 'api', fn: fn, args: args, token: TOKEN }, NO_RETRY.indexOf(fn) === -1); }
   catch (e) {
-    if (/sign-in has expired/.test(e.message)) { signOutLocal(); showSignIn('Please sign in again.'); }
-    else toast(e.message, true);
+    if (/sign-in has expired/.test(e.message)) { signOutLocal(); showSignIn('Please sign in again.'); e.signedOut = true; }
     throw e;
   }
 }
-async function raw(fn, ...args) {
-  try { return await post(fn === 'requestCode' ? { action: fn, email: args[0] } : { action: fn, email: args[0], code: args[1] }); }
-  catch (e) { toast(e.message, true); throw e; }
+function raw(fn, ...args) { return post(fn === 'requestCode' ? { action: fn, email: args[0] } : { action: fn, email: args[0], code: args[1] }, false); }
+function signOutLocal() {
+  try { localStorage.removeItem('cfi_calling_token'); localStorage.removeItem(ROLE_KEY); } catch (e) {}
+  TOKEN = ''; S.home = null; S.homeP = null; S.summary = null; S.sumP = null; S.ov = {};
 }
-function signOutLocal() { try { localStorage.removeItem('cfi_calling_token'); } catch (e) {} TOKEN = ''; S.home = null; }
-async function signOut() { try { await post({ action: 'signOut', token: TOKEN }); } catch (e) {} signOutLocal(); showSignIn('Signed out.'); }
+async function signOut() {
+  if (!leaveOk()) return;
+  try { await post({ action: 'signOut', token: TOKEN }, false); } catch (e) {}
+  signOutLocal(); history.replaceState(null, '', location.pathname + location.search); showSignIn('Signed out.');
+}
 // Outside curefoods.in: sign in with an emailed code.
 function showSignIn(msg) {
+  S.seq++; S.brand = null; S.tab = null;
   $('crumb2').textContent = ''; $('me').textContent = '';
   $('app').innerHTML = '<div class="card" style="max-width:420px;margin:40px auto"><h3>Sign in</h3>' +
-    '<p class="muted">' + (msg || 'Enter your work email. We\'ll email you a 6-digit code. You stay signed in on this device for 30 days.') + '</p>' +
-    '<div class="row"><input type="email" id="sEmail" placeholder="you@company.com" style="flex:1"><button class="btn primary" onclick="sendCode()">Send code</button></div>' +
-    '<div class="row" id="codeRow" style="margin-top:10px;display:none"><input type="text" id="sCode" placeholder="6-digit code" inputmode="numeric" style="flex:1"><button class="btn primary" onclick="checkCode()">Sign in</button></div></div>';
+    '<p class="muted">' + esc(msg || 'Enter your work email. We\'ll email you a 6-digit code. You stay signed in on this device for 30 days.') + '</p>' +
+    '<form class="row" id="fEmail"><input type="email" id="sEmail" placeholder="you@company.com" autocomplete="email" required style="flex:1;min-width:0"><button class="btn primary">Send code</button></form>' +
+    '<form class="row" id="fCode" style="margin-top:10px;display:none"><input type="text" id="sCode" placeholder="6-digit code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" style="flex:1;min-width:0"><button class="btn primary">Sign in</button></form></div>';
+  $('fEmail').onsubmit = e => { e.preventDefault(); sendCode(e.target.querySelector('button')); };
+  $('fCode').onsubmit = e => { e.preventDefault(); checkCode(e.target.querySelector('button')); };
 }
-async function sendCode() { const m = await raw('requestCode', $('sEmail').value); toast(m); $('codeRow').style.display = 'flex'; $('sCode').focus(); }
-async function checkCode() {
-  TOKEN = await raw('verifyCode', $('sEmail').value, $('sCode').value);
-  try { localStorage.setItem('cfi_calling_token', TOKEN); } catch (e) {}
-  S.home = null; goHome();
+function sendCode(btn) {
+  return busy(btn, 'Sending…', async () => { const m = await raw('requestCode', $('sEmail').value); toast(m); $('fCode').style.display = 'flex'; $('sCode').focus(); });
+}
+function checkCode(btn) {
+  return busy(btn, 'Signing in…', async () => {
+    TOKEN = await raw('verifyCode', $('sEmail').value, $('sCode').value);
+    try { localStorage.setItem('cfi_calling_token', TOKEN); } catch (e) {}
+    S.home = null; S.homeP = null; route();
+  });
 }
 function toast(msg, bad) {
   const t = $('toast'); t.textContent = msg; t.style.background = bad ? '#b91c1c' : '#1d2433'; t.style.display = 'block';
   clearTimeout(t._h); t._h = setTimeout(() => t.style.display = 'none', bad ? 6000 : 2500);
 }
+// Disable a button with "Saving…" while an action runs; errors go to a toast.
+async function busy(btn, label, fn) {
+  if (btn && btn.disabled) return;
+  const txt = btn && btn.tagName === 'BUTTON' ? btn.textContent : null;
+  if (btn) { btn.disabled = true; if (txt != null) btn.textContent = label || 'Saving…'; }
+  try { return await fn(); }
+  catch (e) { if (!e.signedOut) toast(e.message, true); }
+  finally { if (btn && btn.isConnected) { btn.disabled = false; if (txt != null) btn.textContent = txt; } }
+}
+// A render is stale once the user moved on (S.seq bumps on every navigation).
+function guard() { const q = S.seq, b = S.brand && S.brand.key; return () => q === S.seq && (S.brand && S.brand.key) === b; }
+function showErr(box, e, retry) {
+  box.innerHTML = '<div class="card"><span class="err">' + esc(e.message || 'Something went wrong.') + '</span> <button class="btn">Retry</button></div>';
+  box.querySelector('button').onclick = () => { box.innerHTML = '<div class="loading">Loading…</div>'; retry(); };
+}
+async function load(boxId, fn) {
+  const ok = guard();
+  try { await fn(ok); }
+  catch (e) { const box = $(boxId); if (ok() && box && !e.signedOut) showErr(box, e, () => load(boxId, fn)); }
+}
+
+// ---------- routing: #<brandKey>/<tab>, home = empty hash ----------
+const TAB_NAMES = [['overview','Overview'],['stores','Stores'],['voice','Voice & schedule'],['activity','Activity'],['access','Access']];
+const tabList = () => TAB_NAMES.filter(t => t[0] !== 'access' || S.home.role === 'owner');
+const LEAVE_MSG = 'You have unsaved changes. Leave without saving them?';
+const dirty = () => !!(S.brand && (Object.keys(S.storeChanges).length || S.gridDirty));
+function discard() { S.storeChanges = {}; S.gridDirty = false; if (S.voice) S.grid = Object.assign({}, S.voice.grid); }
+function leaveOk() { if (!dirty()) return true; if (!confirm(LEAVE_MSG)) return false; discard(); return true; }
+function nav(h) { if (decodeURIComponent(location.hash.slice(1)) === h) route(); else location.hash = h; }
+function goHome() { if (leaveOk()) nav(''); }
+function openBrand(key) { if (leaveOk()) nav(key + '/overview'); }
+function showTab(tab) { if (S.brand) nav(S.brand.key + '/' + tab); }
+function loadHome() {
+  if (!S.homeP) {
+    const p = S.homeP = call('apiHome').then(h => {
+      if (S.homeP === p) { S.home = h; try { localStorage.setItem(ROLE_KEY, h.role); } catch (e) {} }
+      return h;
+    });
+    p.catch(() => { if (S.homeP === p) S.homeP = null; });
+  }
+  return S.homeP;
+}
+async function route() {
+  const [key, tab] = decodeURIComponent(location.hash.slice(1)).split('/');
+  if (!TOKEN) return showSignIn();
+  if (S.brand && key !== S.brand.key && dirty()) {
+    if (!confirm(LEAVE_MSG)) { history.replaceState(null, '', S.lastHash || location.pathname + location.search); return; }
+    discard();
+  }
+  if (!S.home) {
+    const q = ++S.seq;
+    $('app').innerHTML = '<div class="loading">Loading…</div>';
+    try { await loadHome(); } catch (e) { if (q === S.seq && !e.signedOut) showErr($('app'), e, route); return; }
+    if (q !== S.seq || !S.home) return;
+  }
+  S.lastHash = location.hash;
+  $('me').innerHTML = '<span class="em">' + esc(S.home.me) + ' · </span><a href="#" data-act="signout">Sign out</a>';
+  if (S.home.role === 'none') {
+    S.seq++; S.brand = null; $('crumb2').textContent = '';
+    $('app').innerHTML = '<div class="card">You don\'t have access yet. Ask abhilash@curefoods.in to add <b>' + esc(S.home.me) + '</b>.</div>';
+    return;
+  }
+  const b = key ? S.home.brands.find(x => x.key === key) : null;
+  if (!b) { if (key) history.replaceState(null, '', location.pathname + location.search); S.lastHash = ''; return renderHome(); }
+  const t = tabList().some(x => x[0] === tab) ? tab : 'overview';
+  if (t !== tab) { history.replaceState(null, '', '#' + b.key + '/' + t); S.lastHash = location.hash; }
+  if (!S.brand || S.brand.key !== b.key) enterBrand(b);
+  renderTab(t);
+}
+function enterBrand(b) {
+  S.brand = b; S.stores = null; S.storeById = {}; S.voice = null; S.storeChanges = {}; S.grid = {}; S.gridDirty = false; S.paint = ''; S.showDates = null;
+  S.subFilter = null; S.cityFilter = 'All'; S.q = '';
+  $('crumb2').innerHTML = '› ' + logoHtml(b.key, b.name, true) + ' ' + esc(b.name);
+}
+function renderTab(tab) {
+  S.seq++; S.tab = tab;
+  $('app').innerHTML = '<nav class="tabs">' + tabList().map(t => '<button class="' + (t[0] === tab ? 'on' : '') + '" data-act="tab" data-tab="' + t[0] + '">' + esc(t[1]) + '</button>').join('') + '</nav><div id="tab"><div class="loading">Loading…</div></div>';
+  ({ overview:renderOverview, stores:renderStores, voice:renderVoice, activity:renderActivity, access:renderAccess })[tab]();
+}
 
 // ---------- home ----------
-async function goHome() {
-  S.brand = null; $('crumb2').textContent = '';
-  if (!TOKEN) return showSignIn();
-  if (!S.home) S.home = await call('apiHome');
-  $('me').innerHTML = esc(S.home.me) + ' · <a href="#" onclick="signOut();return false">Sign out</a>';
-  if (S.home.role === 'none') { $('app').innerHTML = '<div class="card">You don\'t have access yet. Ask abhilash@curefoods.in to add <b>' + esc(S.home.me) + '</b>.</div>'; return; }
+function renderHome() {
+  S.seq++; S.brand = null; S.tab = null; $('crumb2').textContent = '';
   const ordered = S.home.brands.slice().sort((a, b) => brandRank(a.key) - brandRank(b.key));
   $('app').innerHTML = '<div class="brands">' + ordered.map(b =>
-    '<div class="card brand' + (b.status === 'Live' ? '' : ' paused') + '" onclick="openBrand(\'' + b.key + '\')">' + logoHtml(b.key, b.name) +
+    '<div class="card brand' + (b.status === 'Live' ? '' : ' paused') + '" data-act="brand" data-key="' + esc(b.key) + '">' + logoHtml(b.key, b.name) +
     '<span class="pill ' + (b.status === 'Live' ? '' : 'off') + '">' + esc(b.status || 'Not set up') + '</span></div>').join('') + '</div>' +
     (S.home.role === 'owner' ? '<div id="ownerSummary" style="margin-top:24px"><div class="loading">Loading summary…</div></div>' : '');
   if (S.home.role === 'owner') renderOwnerSummary();
 }
 
-// Owner-only: all brands, last full days. Today is partial, so it's shown apart.
+// Owner-only summary; fetched at most every ~2 minutes, chips re-render from it.
+function loadSummary() {
+  if (S.sumP && Date.now() - S.sumAt < 120e3) return S.sumP;
+  S.sumAt = Date.now();
+  const p = S.sumP = call('apiOwnerSummary').then(d => { if (S.sumP === p) S.summary = d; return d; });
+  p.catch(() => { if (S.sumP === p) S.sumP = null; });
+  return p;
+}
 async function renderOwnerSummary() {
-  const data = await call('apiOwnerSummary');
+  const ok = guard(), had = !!S.summary;
+  if (had) drawSummary(S.summary);
+  try { const d = await loadSummary(); if (ok()) drawSummary(d); }
+  catch (e) { const box = $('ownerSummary'); if (ok() && box && !had && !e.signedOut) showErr(box, e, renderOwnerSummary); }
+}
+
+// All brands, last full days. Today is partial, so it's shown apart.
+function drawSummary(data) {
   const box = $('ownerSummary'); if (!box) return;
-  const today = data[0] ? data[0].today : '';
+  const today = data[0] ? data[0].today : istDate();
   const fullDays = Array.from(new Set([].concat(...data.map(b => b.days.map(d => d.date))))).filter(d => d < today).sort().reverse();
-  // Yesterday (full day) or today so far. Default: yesterday before 12 PM, today after.
-  if (!S.sumMode) S.sumMode = new Date().getHours() < 12 ? 'y' : 't';
+  // Yesterday (full day) or today so far. Default: yesterday before 12 PM IST, today after.
+  if (!S.sumMode) S.sumMode = istHour() < 12 ? 'y' : 't';
   const isToday = S.sumMode === 't';
   const dayList = (isToday ? [today].concat(fullDays) : fullDays).slice(0, 7);
   const y = dayList[0], dby = dayList[1];
-  const nowLabel = new Date().toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+  const nowLabel = new Date().toLocaleTimeString('en-IN', { timeZone: IST, hour: 'numeric', minute: '2-digit' });
   const get = (b, d) => b.days.find(x => x.date === d) || { orders: 0, placed: 0, heard: 0 };
   const sum = (d, f) => data.reduce((a, b) => a + get(b, d)[f], 0);
   const fmt = n => n.toLocaleString('en-IN');
@@ -190,44 +307,44 @@ async function renderOwnerSummary() {
   const spark = b => { const vals = dayList.slice().reverse().map(d => get(b, d).placed); const m = Math.max(1, ...vals);
     return '<span style="display:inline-flex;align-items:flex-end;gap:2px;height:22px">' + vals.map(v => '<i style="display:inline-block;width:7px;height:' + Math.max(2, Math.round(22 * v / m)) + 'px;background:var(--accent);border-radius:1px"></i>').join('') + '</span>'; };
   const row = (name, yv, dv, sp, wk) => '<tr><td>' + name + '</td><td class="n">' + fmt(yv.placed) + ' ' + cmp(yv.placed, dv.placed) + '</td><td class="n">' + pct(yv.heard, yv.placed) + '</td><td class="n">' + pct(yv.placed, yv.orders) + '</td><td class="n">' + fmt(wk) + '</td><td>' + sp + '</td></tr>';
-  const live = data.filter(b => b.days.length);
+  const nameCell = b => '<span style="display:inline-flex;align-items:center;gap:8px">' + logoHtml(b.key, b.name, true) + esc(b.name) + '</span>';
+  const live = data.filter(b => b.days.length || b.error);
   const total = { orders: sum(y, 'orders'), placed: sum(y, 'placed'), heard: sum(y, 'heard') }, totPrev = { placed: sum(dby, 'placed') };
   const wkTotal = dayList.reduce((a, d) => a + sum(d, 'placed'), 0);
   box.innerHTML = '<div class="card"><div class="row" style="margin-bottom:10px"><h3 style="margin:0">All brands summary <span class="muted" style="font-weight:400">· only you can see this</span></h3>' +
-    '<span class="chips" style="margin:0 0 0 auto">' + [['y', 'Yesterday'], ['t', 'Today so far']].map(m => '<span class="chip ' + (S.sumMode === m[0] ? 'on' : '') + '" data-m="' + m[0] + '" onclick="S.sumMode=this.dataset.m;renderOwnerSummary()">' + m[1] + '</span>').join('') + '</span></div>' +
+    '<span class="chips" style="margin:0 0 0 auto">' + [['y', 'Yesterday'], ['t', 'Today so far']].map(m => '<span class="chip ' + (S.sumMode === m[0] ? 'on' : '') + '" data-act="summode" data-m="' + m[0] + '">' + m[1] + '</span>').join('') + '</span></div>' +
     '<div class="kpis">' +
       '<div class="kpi"><div class="v">' + fmt(total.placed) + '</div><div class="l">Calls made ' + label(y) + (isToday ? '' : ' ' + delta(total.placed, totPrev.placed) + ' vs ' + label(dby)) + '</div></div>' +
       '<div class="kpi"><div class="v">' + fmt(total.heard) + '</div><div class="l">Heard the full message (' + pct(total.heard, total.placed) + ')</div></div>' +
       '<div class="kpi"><div class="v">' + pct(total.placed, total.orders) + '</div><div class="l">Call rate: calls ÷ ' + fmt(total.orders) + ' Swiggy + Zomato orders</div></div>' +
       '<div class="kpi"><div class="v">' + fmt(wkTotal) + '</div><div class="l">Calls in the last ' + dayList.length + (isToday ? ' days (incl. today)' : ' full days') + '</div></div>' +
     '</div>' +
-    '<table><tr><th>Brand</th><th class="n">Calls ' + label(y) + '</th><th class="n">Heard %</th><th class="n">Call rate</th><th class="n">Last ' + dayList.length + ' days</th><th>Trend</th></tr>' +
-      live.map(b => row('<span style="display:inline-flex;align-items:center;gap:8px">' + logoHtml(b.key, b.name, true) + esc(b.name) + '</span>', get(b, y), get(b, dby), spark(b), dayList.reduce((a, d) => a + get(b, d).placed, 0))).join('') +
+    '<div style="overflow:auto"><table><tr><th>Brand</th><th class="n">Calls ' + label(y) + '</th><th class="n">Heard %</th><th class="n">Call rate</th><th class="n">Last ' + dayList.length + ' days</th><th>Trend</th></tr>' +
+      live.map(b => b.error ? '<tr><td>' + nameCell(b) + '</td><td colspan="5" class="err">Couldn\'t read its call log</td></tr>'
+        : row(nameCell(b), get(b, y), get(b, dby), spark(b), dayList.reduce((a, d) => a + get(b, d).placed, 0))).join('') +
       '<tr style="font-weight:600">' + row('All brands', total, totPrev, '', wkTotal).slice(4) +
-    '</table>' +
+    '</table></div>' +
     '<p class="muted">' + (isToday ? 'Today is still in progress, so its numbers keep growing until midnight.' : 'Full days only (today is still in progress).') + ' Heard % = calls where the customer listened to the whole message. Trend bars = calls per day, oldest to newest.</p></div>';
 }
 
-function openBrand(key) {
-  S.brand = S.home.brands.find(b => b.key === key);
-  S.stores = null; S.voice = null; S.storeChanges = {};
-  $('crumb2').innerHTML = '› ' + logoHtml(S.brand.key, S.brand.name, true) + ' ' + esc(S.brand.name);
-  showTab('overview');
-}
-
-function showTab(tab) {
-  S.tab = tab;
-  const tabs = [['overview','Overview'],['stores','Stores'],['voice','Voice & schedule'],['activity','Activity']];
-  if (S.home.role === 'owner') tabs.push(['access','Access']);
-  $('app').innerHTML = '<nav class="tabs">' + tabs.map(t => '<button class="' + (t[0] === tab ? 'on' : '') + '" onclick="showTab(\'' + t[0] + '\')">' + t[1] + '</button>').join('') + '</nav><div id="tab"><div class="loading">Loading…</div></div>';
-  ({ overview:renderOverview, stores:renderStores, voice:renderVoice, activity:renderActivity, access:renderAccess })[tab]();
-}
-
 // ---------- overview ----------
+// Shows the last overview of this brand at once, then refreshes it quietly.
 async function renderOverview() {
-  const [o, r] = await Promise.all([call('apiOverview', S.brand.key), call('apiReadiness', S.brand.key)]);
-  S.ready = r;
-  const today = o.days[0] || { orders:0, placed:0, heard:0, notReached:0, waiting:0 };
+  const key = S.brand.key, ok = guard(), had = S.ov[key], t0 = Date.now();
+  if (had) drawOverview(had);
+  try {
+    const o = await call('apiOverview', key);
+    // A go-live / number change landed after this request started: keep its readiness.
+    if (t0 < (S.mut['ov_' + key] || 0) && S.ov[key]) o.ready = S.ov[key].ready;
+    S.ov[key] = o;
+    if (ok()) drawOverview(o);
+  } catch (e) { const box = $('tab'); if (ok() && box && !had && !e.signedOut) showErr(box, e, renderOverview); }
+}
+function drawOverview(o) {
+  const box = $('tab'); if (!box || S.tab !== 'overview' || !S.brand) return;
+  const r = o.ready; S.ready = r;
+  const td = o.today || istDate();
+  const today = o.days[0] && o.days[0].date === td ? o.days[0] : { orders:0, placed:0, heard:0, notReached:0, waiting:0 };
   const k = (v,l) => '<div class="kpi"><div class="v">' + v + '</div><div class="l">' + l + '</div></div>';
   const trend = o.days.slice(0, 14).reverse();
   const max = Math.max(1, ...trend.map(d => d.placed));
@@ -235,15 +352,16 @@ async function renderOverview() {
   const ready = r.plivoNumber && r.mainClip && r.storesOn;
   const statusCard = r.status === 'Live'
     ? '<div class="card row" style="border-color:var(--accent)"><span class="pill">● Live</span><span>Customers of ' + esc(S.brand.name) + ' are being called.</span>' +
-        (r.isOwner ? '<button class="btn" style="margin-left:auto" onclick="setLive(false)">Pause calling</button>' : '') + '</div>'
+        (r.isOwner ? '<button class="btn" style="margin-left:auto" data-act="setlive" data-on="0">Pause calling</button>' : '') + '</div>'
     : '<div class="card" style="border-color:#f59e0b"><h3>' + esc(S.brand.name) + ' is paused: no customer calls yet</h3>' +
         '<div style="line-height:2">' +
         tick(r.plivoNumber) + ' Calling number: ' + (r.plivoNumber ? esc(r.plivoNumber) : 'not set') +
-          (r.isOwner ? ' <input type="text" id="pNum" placeholder="Plivo number" value="' + esc(r.plivoNumber) + '" style="width:160px"> <button class="btn" onclick="savePlivo()">Save</button>' : '') + '<br>' +
-        tick(r.mainClip) + ' Main voice clip: ' + (r.mainClip ? esc(r.mainClip) : 'not uploaded. Add one in <a href="#" onclick="showTab(\'voice\');return false">Voice &amp; schedule</a>') + '<br>' +
+          (r.isOwner ? ' <input type="text" id="pNum" placeholder="Plivo number" value="' + esc(r.plivoNumber) + '" style="width:160px"> <button class="btn" data-act="plivo">Save</button>' : '') + '<br>' +
+        tick(r.mainClip) + ' Main voice clip: ' + (r.mainClip ? esc(r.mainClip) : 'not uploaded. Add one in <a href="#" data-act="tab" data-tab="voice">Voice &amp; schedule</a>') + '<br>' +
         tick(r.storesOn) + ' Stores on: ' + r.storesOn + ' of ' + r.storesAll + '</div>' +
-        (r.isOwner ? '<button class="btn primary" style="margin-top:10px" ' + (ready ? '' : 'disabled') + ' onclick="setLive(true)">Go live</button>' : '') + '</div>';
-  $('tab').innerHTML = statusCard +
+        (r.isOwner ? '<button class="btn primary" style="margin-top:10px" ' + (ready ? '' : 'disabled') + ' data-act="setlive" data-on="1">Go live</button>' : '') + '</div>';
+  const pn = $('pNum'), typing = pn && document.activeElement === pn ? pn.value : null;
+  box.innerHTML = statusCard +
     '<div class="row muted" style="margin-bottom:10px">Live now: <b style="color:var(--ink)">' + esc(o.live.day + ' ' + o.live.slot + ' · ' + o.live.label) + '</b>' +
       (o.lastCheck ? '&nbsp;·&nbsp; last order check ' + esc(o.lastCheck) : '') + '</div>' +
     '<div class="kpis">' +
@@ -252,19 +370,19 @@ async function renderOverview() {
       k(pct(today.heard, today.placed), 'Heard the message') +
       k(today.notReached.toLocaleString('en-IN'), 'Not reached (no answer / rejected / busy)') +
       k(today.orders.toLocaleString('en-IN'), 'Swiggy + Zomato orders seen') +
-      k('<span class="muted" style="font-size:14px">Not connected yet</span>', 'Ratings from called orders') +
     '</div>' +
     '<div class="card"><h3>Last 14 days</h3>' +
       (trend.length ? '<div class="bars">' + trend.map(d => {
         const h = Math.round(100 * d.placed / max), hh = d.placed ? Math.round(100 * d.heard / d.placed) : 0;
-        return '<div class="bar" title="' + d.date + ': ' + d.placed + ' calls, ' + d.heard + ' heard' + (d.plivo != null ? ', Plivo ' + d.plivo : '') + '">' +
-          '<div class="val">' + d.placed + '</div><div class="b" style="height:' + h + '%"><div class="h" style="height:' + hh + '%"></div></div>' + d.date.slice(8) + '/' + d.date.slice(5,7) + '</div>';
+        return '<div class="bar" title="' + esc(d.date + ': ' + d.placed + ' calls, ' + d.heard + ' heard' + (d.plivo != null ? ', Plivo ' + d.plivo : '')) + '">' +
+          '<div class="val">' + d.placed + '</div><div class="b" style="height:' + h + '%"><div class="h" style="height:' + hh + '%"></div></div>' + esc(d.date.slice(8) + '/' + d.date.slice(5,7)) + '</div>';
       }).join('') + '</div><div class="legend"><span><i style="background:#0b4f49"></i>Heard message</span><span><i style="background:var(--accent)"></i>Calls made</span></div>' : '<div class="muted">No calls yet.</div>') +
     '</div>' +
     '<div class="two">' +
       '<div class="card"><h3>Today by city</h3>' + tbl(['City','Orders','Calls','Heard %'], o.cities.map(c => [esc(c.city), c.orders, c.placed, pct(c.heard, c.placed)])) + '</div>' +
       '<div class="card"><h3>Today by store</h3><div style="max-height:420px;overflow:auto">' + tbl(['Store','City','Calls','Heard %'], o.stores.map(s => [esc(s.store), esc(s.city), s.placed, pct(s.heard, s.placed)])) + '</div></div>' +
     '</div>';
+  if (typing != null && $('pNum')) { $('pNum').value = typing; $('pNum').focus(); }
 }
 function tbl(head, rows) {
   if (!rows.length) return '<div class="muted">Nothing yet today.</div>';
@@ -272,81 +390,138 @@ function tbl(head, rows) {
     rows.map(r => '<tr>' + r.map((v,i) => '<td class="' + (i && typeof v !== 'string' || /%$/.test(v) ? 'n' : '') + '">' + v + '</td>').join('') + '</tr>').join('') + '</table>';
 }
 
-async function savePlivo() { await call('apiSetPlivoNumber', S.brand.key, $('pNum').value); toast('Calling number saved.'); renderOverview(); }
-async function setLive(on) {
+// Go-live / number changes return readiness: update locally, no refetch.
+function applyReady(key, r) {
+  S.mut['ov_' + key] = Date.now();
+  const b = S.home && S.home.brands.find(x => x.key === key);
+  if (b) { b.status = r.status; b.plivoNumber = r.plivoNumber; }
+  if (S.ov[key]) { S.ov[key].ready = r; if (S.brand && S.brand.key === key) drawOverview(S.ov[key]); }
+}
+function savePlivo(btn) {
+  const key = S.brand.key, num = $('pNum').value;
+  return busy(btn, 'Saving…', async () => { const r = await call('apiSetPlivoNumber', key, num); applyReady(key, r); toast('Calling number saved.'); });
+}
+function setLive(btn, on) {
   if (!confirm(on ? 'Start calling ' + S.brand.name + ' customers now?' : 'Pause all ' + S.brand.name + ' customer calls?')) return;
-  await call('apiSetLive', S.brand.key, on); toast(on ? 'Live. Calls start within 5 minutes.' : 'Paused. No new calls from the next check.');
-  S.home = null; await call('apiHome').then(h => { S.home = h; S.brand = h.brands.find(b => b.key === S.brand.key); }); renderOverview();
+  const key = S.brand.key;
+  return busy(btn, on ? 'Going live…' : 'Pausing…', async () => {
+    const r = await call('apiSetLive', key, on); applyReady(key, r);
+    toast(on ? 'Live. Calls start within 5 minutes.' : 'Paused. No new calls from the next check.');
+  });
 }
 
 // ---------- stores ----------
-async function renderStores() {
-  if (!S.stores) S.stores = await call('apiStores', S.brand.key);
+// UrbanPiper lists some stores twice: count each store (by its code/name) once.
+const skey = s => String(s.name).split('/').pop().trim().toLowerCase();
+const uniq = arr => new Set(arr.map(skey)).size;
+const isOn = id => (id in S.storeChanges) ? S.storeChanges[id] : S.storeById[id].active;
+const matchQ = s => !S.q || (s.name + ' ' + s.city).toLowerCase().includes(S.q);
+const inFilter = s => (S.subFilter === 'All' || s.sub === S.subFilter) && (S.cityFilter === 'All' || s.city === S.cityFilter);
+function setStores(list) { S.stores = list; S.storeById = {}; list.forEach(s => { S.storeById[s.id] = s; }); }
+function renderStores() {
+  return load('tab', async ok => {
+    if (!S.stores) {
+      const key = S.brand.key, t0 = Date.now(), list = await call('apiStores', key);
+      if (S.brand && S.brand.key === key && !(S.stores && t0 < (S.mut.stores || 0))) setStores(list);
+      if (!ok()) return;
+    }
+    drawStores();
+  });
+}
+function drawStores(keepScroll) {
+  const box = $('tab'); if (!box || S.tab !== 'stores' || !S.stores) return;
+  const prev = box.querySelector('.stores'), top = keepScroll && prev ? prev.scrollTop : 0;
   const cities = ['All', ...Array.from(new Set(S.stores.map(s => s.city))).sort()];
-  const active = id => (id in S.storeChanges) ? S.storeChanges[id] : S.stores.find(s => s.id === id).active;
   const subs = Array.from(new Set(S.stores.map(s => s.sub).filter(Boolean))).sort();
   if (!S.subFilter || (S.subFilter !== 'All' && subs.indexOf(S.subFilter) === -1)) S.subFilter = 'All';
-  const shown = S.stores.filter(s => (S.subFilter === 'All' || s.sub === S.subFilter) && (S.cityFilter === 'All' || s.city === S.cityFilter) &&
-    (!S.q || (s.name + ' ' + s.city).toLowerCase().includes(S.q)));
-  // UrbanPiper lists some stores twice: count each store (by its code/name) once.
-  const sk = s => String(s.name).split('/').pop().trim().toLowerCase();
-  const uniq = arr => new Set(arr.map(sk)).size;
-  const onCount = uniq(S.stores.filter(s => active(s.id)));
+  const shown = S.stores.filter(inFilter);
+  const onCount = uniq(S.stores.filter(s => isOn(s.id)));
   const pending = Object.keys(S.storeChanges).length;
-  $('tab').innerHTML = '<div class="card">' +
+  box.innerHTML = '<div class="card">' +
     '<div class="row"><b>' + onCount + ' of ' + uniq(S.stores) + ' stores calling customers</b>' +
-      '<input type="search" placeholder="Search store" value="' + esc(S.q || '') + '" oninput="S.q=this.value.toLowerCase();renderStores()" style="margin-left:auto">' +
-      '<button class="btn" onclick="setShown(true)">Turn on shown</button><button class="btn" onclick="setShown(false)">Turn off shown</button>' +
-      '<button class="btn primary" ' + (pending ? '' : 'disabled') + ' onclick="saveStores()">Save' + (pending ? ' (' + pending + ')' : '') + '</button></div>' +
-    (subs.length > 1 ? '<div class="chips"><span class="muted" style="align-self:center">Sub-brand</span>' + ['All'].concat(subs).map(b => '<span class="chip ' + (b === S.subFilter ? 'on' : '') + '" data-sub="' + esc(b) + '" onclick="S.subFilter=this.dataset.sub;renderStores()">' + esc(b) +
-      (b === 'All' ? '' : ' ' + S.stores.filter(s => s.sub === b && active(s.id)).length + '/' + S.stores.filter(s => s.sub === b).length) + '</span>').join('') + '</div>' : '') +
-    '<div class="chips">' + (subs.length > 1 ? '<span class="muted" style="align-self:center">City</span>' : '') + cities.map(c => '<span class="chip ' + (c === S.cityFilter ? 'on' : '') + '" data-city="' + esc(c) + '" onclick="S.cityFilter=this.dataset.city;renderStores()">' + esc(c) +
-      (c === 'All' ? '' : ' ' + uniq(S.stores.filter(s => s.city === c && active(s.id))) + '/' + uniq(S.stores.filter(s => s.city === c))) + '</span>').join('') + '</div>' +
-    '<div class="stores">' + shown.map(s => '<div class="store"><div>' + esc(s.name) + '<span class="city">' + esc(s.city) + (subs.length > 1 ? ' · ' + esc(s.sub) : '') + '</span></div>' +
-      '<label class="toggle"><input type="checkbox" ' + (active(s.id) ? 'checked' : '') + ' onchange="flip(\'' + s.id + '\',this.checked)"><span></span></label></div>').join('') + '</div>' +
+      '<input type="search" id="storeQ" placeholder="Search store" value="' + esc(S.q) + '" style="margin-left:auto">' +
+      '<button class="btn" data-act="shown" data-on="1">Turn on shown</button><button class="btn" data-act="shown" data-on="0">Turn off shown</button>' +
+      '<button class="btn primary" ' + (pending ? '' : 'disabled') + ' data-act="savestores">Save' + (pending ? ' (' + pending + ')' : '') + '</button></div>' +
+    (subs.length > 1 ? '<div class="chips"><span class="muted" style="align-self:center">Sub-brand</span>' + ['All'].concat(subs).map(b => '<span class="chip ' + (b === S.subFilter ? 'on' : '') + '" data-act="sub" data-sub="' + esc(b) + '">' + esc(b) +
+      (b === 'All' ? '' : ' ' + uniq(S.stores.filter(s => s.sub === b && isOn(s.id))) + '/' + uniq(S.stores.filter(s => s.sub === b))) + '</span>').join('') + '</div>' : '') +
+    '<div class="chips">' + (subs.length > 1 ? '<span class="muted" style="align-self:center">City</span>' : '') + cities.map(c => '<span class="chip ' + (c === S.cityFilter ? 'on' : '') + '" data-act="city" data-city="' + esc(c) + '">' + esc(c) +
+      (c === 'All' ? '' : ' ' + uniq(S.stores.filter(s => s.city === c && isOn(s.id))) + '/' + uniq(S.stores.filter(s => s.city === c))) + '</span>').join('') + '</div>' +
+    '<div class="stores">' + shown.map(s => '<div class="store" data-id="' + esc(s.id) + '"' + (matchQ(s) ? '' : ' style="display:none"') + '><div>' + esc(s.name) + '<span class="city">' + esc(s.city) + (subs.length > 1 ? ' · ' + esc(s.sub) : '') + '</span></div>' +
+      '<label class="toggle"><input type="checkbox" data-store="' + esc(s.id) + '" ' + (isOn(s.id) ? 'checked' : '') + '><span></span></label></div>').join('') + '</div>' +
     '<p class="muted">Changes go live on the next order check (within about 5 minutes).</p></div>';
-  const q = document.querySelector('input[type=search]'); if (S.q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
+  if (top) box.querySelector('.stores').scrollTop = top;
+}
+// Search only hides/shows rows, so the input keeps focus and nothing re-renders.
+function filterStores(q) {
+  S.q = q.toLowerCase();
+  document.querySelectorAll('#tab .store').forEach(el => { const s = S.storeById[el.dataset.id]; el.style.display = s && matchQ(s) ? '' : 'none'; });
 }
 function flip(id, on) {
-  const orig = S.stores.find(s => s.id === id).active;
-  if (on === orig) delete S.storeChanges[id]; else S.storeChanges[id] = on;
-  renderStores();
+  if (!S.storeById[id]) return;
+  if (on === S.storeById[id].active) delete S.storeChanges[id]; else S.storeChanges[id] = on;
+  drawStores(true);
 }
 function setShown(on) {
-  S.stores.filter(s => (S.subFilter === 'All' || s.sub === S.subFilter) && (S.cityFilter === 'All' || s.city === S.cityFilter) && (!S.q || (s.name + ' ' + s.city).toLowerCase().includes(S.q)))
-    .forEach(s => { if (on === s.active) delete S.storeChanges[s.id]; else S.storeChanges[s.id] = on; });
-  renderStores();
+  S.stores.filter(s => inFilter(s) && matchQ(s)).forEach(s => { if (on === s.active) delete S.storeChanges[s.id]; else S.storeChanges[s.id] = on; });
+  drawStores(true);
 }
-async function saveStores() {
-  const changes = Object.keys(S.storeChanges).map(id => ({ id: id, active: S.storeChanges[id] }));
-  S.stores = await call('apiSaveStores', S.brand.key, changes);
-  S.storeChanges = {}; toast('Saved. Live within 5 minutes.'); renderStores();
+function saveStores(btn) {
+  const key = S.brand.key, sent = Object.assign({}, S.storeChanges);
+  const changes = Object.keys(sent).map(id => ({ id: id, active: sent[id] }));
+  return busy(btn, 'Saving…', async () => {
+    const list = await call('apiSaveStores', key, changes);
+    if (!S.brand || S.brand.key !== key) return;
+    S.mut.stores = Date.now(); setStores(list);
+    // Keep only toggles made while this save was in flight.
+    Object.keys(S.storeChanges).forEach(id => { const s = S.storeById[id]; if (!s || S.storeChanges[id] === sent[id] || s.active === S.storeChanges[id]) delete S.storeChanges[id]; });
+    toast('Saved. Live within 5 minutes.'); drawStores(true);
+  });
 }
 
 // ---------- voice & schedule ----------
-async function renderVoice(fresh) {
-  if (!S.voice || fresh) { S.voice = await call('apiVoice', S.brand.key); S.grid = Object.assign({}, S.voice.grid); S.gridDirty = false; }
-  const v = S.voice;
-  const color = id => { const i = v.clips.findIndex(c => c.id === id); return i < 0 ? '#eee' : COLORS[i % COLORS.length]; };
+function renderVoice(fresh) {
+  return load('tab', async ok => {
+    if (!S.voice || fresh) {
+      const key = S.brand.key, t0 = Date.now(), v = await call('apiVoice', key);
+      if (S.brand && S.brand.key === key && !(S.voice && t0 < (S.mut.voice || 0))) { S.voice = v; S.grid = Object.assign({}, v.grid); S.gridDirty = false; }
+      if (!ok()) return;
+    }
+    drawVoice();
+  });
+}
+// New clip list from the server. A painted (unsaved) grid is kept, except
+// cells pointing at a clip that no longer exists (they fall back to main).
+function setVoice(v) {
+  S.mut.voice = Date.now(); S.voice = v;
+  const ids = new Set(v.clips.map(c => c.id));
+  if (S.paint && S.paint !== 'OFF' && !ids.has(S.paint)) S.paint = '';
+  if (!S.gridDirty) { S.grid = Object.assign({}, v.grid); return; }
+  Object.keys(S.grid).forEach(k => { const x = S.grid[k]; if (x && x !== 'OFF' && !ids.has(x)) S.grid[k] = ''; });
+}
+const clipColor = id => { const i = S.voice.clips.findIndex(c => c.id === id); return i < 0 ? '#eee' : COLORS[i % COLORS.length]; };
+function cellInfo(k) {
+  const val = S.grid[k] || '';
+  if (val === 'OFF') return { bg: '#f3f4f6', color: '#9ca3af', text: 'Off' };
+  const def = S.voice.clips.find(c => c.isDefault), id = val || (def && def.id), c = S.voice.clips.find(x => x.id === id);
+  return { bg: clipColor(id), color: '', text: c ? c.name.slice(0, 16) : '?' };
+}
+function drawVoice() {
+  const box = $('tab'); if (!box || S.tab !== 'voice' || !S.voice) return;
+  const v = S.voice, color = clipColor;
   const def = v.clips.find(c => c.isDefault);
-  const cell = (d, s) => {
-    const val = S.grid[d + '|' + s] || '';
-    if (val === 'OFF') return '<td style="background:#f3f4f6;color:#9ca3af" data-k="' + d + '|' + s + '">Off</td>';
-    const id = val || (def && def.id);
-    const c = v.clips.find(x => x.id === id);
-    return '<td style="background:' + color(id) + '" data-k="' + d + '|' + s + '">' + esc(c ? c.name.slice(0, 16) : '?') + '</td>';
-  };
+  const cell = (d, s) => { const k = d + '|' + s, i = cellInfo(k);
+    return '<td style="background:' + i.bg + (i.color ? ';color:' + i.color : '') + '" data-k="' + esc(k) + '">' + esc(i.text) + '</td>'; };
   const palette = [{ id:'', name:'Main clip' + (def ? ': ' + def.name : '') }].concat(v.clips.filter(c => !c.isDefault)).concat([{ id:'OFF', name:'Calling off' }]);
   // How many of the 35 saved slots each clip owns (unpainted slots belong to the main clip).
   const used = {}; let offSlots = 0;
   S.home.days.forEach(d => S.home.slots.forEach(s => { const val = v.grid[d + '|' + s.key] || ''; if (val === 'OFF') offSlots++; else { const id = val || (def && def.id); used[id] = (used[id] || 0) + 1; } }));
-  const liveClip = v.clips.find(c => c.name === v.live.label);
+  const liveClip = v.live.clipId ? v.clips.find(c => c.id === v.live.clipId) : null;
   const status = c => {
     if (liveClip && liveClip.id === c.id) return '<span class="pill">▶ Playing now</span>';
     if (used[c.id]) return '<span class="pill off">In ' + used[c.id] + ' of 35 slots</span>';
     return '<span class="pill off">Not in use</span>';
   };
-  $('tab').innerHTML =
+  box.innerHTML =
     '<div class="card" style="border-color:var(--accent)">' +
       '<div class="muted">Customers are hearing right now (' + esc(v.live.day + ' ' + v.live.slot) + ')</div>' +
       (liveClip ? '<div class="row" style="margin-top:6px"><span style="font-size:18px;font-weight:650">' + esc(liveClip.name) + '</span><audio controls preload="none" src="' + esc(liveClip.url) + '"></audio></div>'
@@ -356,49 +531,74 @@ async function renderVoice(fresh) {
       v.clips.map(c => '<div class="clip"><span class="swatch" style="background:' + color(c.id) + '"></span><span class="nm">' + esc(c.name) +
           (c.isDefault ? ' <span class="pill" style="background:#eef2ff;color:#3730a3">Main clip</span>' : '') + ' ' + status(c) + '</span>' +
         '<audio controls preload="none" src="' + esc(c.url) + '"></audio>' +
-        (c.isDefault ? '' : '<button class="btn" onclick="makeDefault(\'' + c.id + '\')">Make main clip</button><button class="btn" onclick="removeClip(\'' + c.id + '\')">Remove</button>') +
+        (c.isDefault ? '' : '<button class="btn" data-act="makedefault" data-id="' + esc(c.id) + '">Make main clip</button><button class="btn" data-act="removeclip" data-id="' + esc(c.id) + '">Remove</button>') +
         ((c.startDate || c.endDate || S.showDates === c.id)
-          ? '<span class="muted">Only between</span><input type="date" value="' + c.startDate + '" onchange="clipDates(\'' + c.id + '\',this.value,null)"><span class="muted">and</span><input type="date" value="' + c.endDate + '" onchange="clipDates(\'' + c.id + '\',null,this.value)">'
-          : (c.isDefault ? '' : '<button class="btn" onclick="S.showDates=\'' + c.id + '\';renderVoice()">Limit to dates</button>')) +
+          ? '<span class="muted">Only between</span><input type="date" value="' + esc(c.startDate) + '" data-chg="dates" data-id="' + esc(c.id) + '"><span class="muted">and</span><input type="date" value="' + esc(c.endDate) + '" data-chg="dates" data-id="' + esc(c.id) + '">'
+          : (c.isDefault ? '' : '<button class="btn" data-act="showdates" data-id="' + esc(c.id) + '">Limit to dates</button>')) +
         '<span class="muted">' + esc(c.uploadedBy ? 'Added by ' + c.uploadedBy + ', ' + c.uploadedAt : '') + '</span></div>').join('') +
       '<p class="muted">The <b>main clip</b> plays in every slot unless you paint another clip there in the schedule below.' + (offSlots ? ' Calling is off in ' + offSlots + ' slots.' : '') + '</p>' +
-      '<div class="row" style="margin-top:10px"><b>Add a clip:</b><input type="file" id="file" accept="audio/*,.opus,.ogg,.m4a,.mp3,.wav" onchange="prepClip()"><input type="text" id="clipName" placeholder="Clip name, e.g. Diwali special"><button class="btn primary" id="upBtn" disabled onclick="uploadClip()">Upload</button></div>' +
+      '<div class="row" style="margin-top:10px"><b>Add a clip:</b><input type="file" id="file" accept="audio/*,.opus,.ogg,.m4a,.mp3,.wav"><input type="text" id="clipName" placeholder="Clip name, e.g. Diwali special"><button class="btn primary" id="upBtn" disabled data-act="upload">Upload</button></div>' +
       '<div id="prep" class="muted" style="margin-top:6px">Any audio file works, including WhatsApp voice notes. It is converted to phone quality before upload. A new clip is not used until you make it the main clip or paint it into the schedule.</div>' +
     '</div>' +
     '<div class="card"><h3>Weekly schedule</h3>' +
       '<div class="muted" style="margin-bottom:6px">This week pattern repeats every week. Pick a brush, then click or drag over slots. Each slot plays exactly one clip, or no calls at all.</div>' +
       v.clips.filter(c => c.startDate || c.endDate).map(c => '<div class="muted">📅 <b>' + esc(c.name) + '</b> only plays from ' + esc(c.startDate || 'now') + ' to ' + esc(c.endDate || 'no end date') + '. Outside those dates its slots play the main clip.</div>').join('') +
-      '<div class="chips">' + palette.map(p => '<span class="chip ' + (S.paint === p.id ? 'on' : '') + '" onclick="S.paint=\'' + p.id + '\';renderVoice()"><span class="swatch" style="display:inline-block;vertical-align:-2px;margin-right:5px;background:' +
+      '<div class="chips" id="brushes">' + palette.map(p => '<span class="chip ' + (S.paint === p.id ? 'on' : '') + '" data-act="brush" data-id="' + esc(p.id) + '"><span class="swatch" style="display:inline-block;vertical-align:-2px;margin-right:5px;background:' +
         (p.id === 'OFF' ? '#f3f4f6' : p.id ? color(p.id) : (def ? color(def.id) : '#eee')) + '"></span>' + esc(p.name) + '</span>').join('') + '</div>' +
-      '<div style="overflow:auto"><table class="grid" id="grid"><tr><th></th>' + S.home.days.map(d => '<th>' + d + '</th>').join('') + '</tr>' +
-        S.home.slots.map(s => '<tr><th class="slot">' + s.label + '<div class="muted">' + s.hours + '</div></th>' + S.home.days.map(d => cell(d, s.key)).join('') + '</tr>').join('') + '</table></div>' +
-      '<div class="row" style="margin-top:10px"><button class="btn primary" ' + (S.gridDirty ? '' : 'disabled') + ' onclick="saveGrid()">Save schedule</button>' +
-        '<button class="btn" onclick="renderVoice(true)">Undo changes</button></div>' +
+      '<div style="overflow:auto"><table class="grid" id="grid"><tr><th></th>' + S.home.days.map(d => '<th>' + esc(d) + '</th>').join('') + '</tr>' +
+        S.home.slots.map(s => '<tr><th class="slot">' + esc(s.label) + '<div class="muted">' + esc(s.hours) + '</div></th>' + S.home.days.map(d => cell(d, s.key)).join('') + '</tr>').join('') + '</table></div>' +
+      '<div class="row" style="margin-top:10px"><button class="btn primary" id="saveGrid" ' + (S.gridDirty ? '' : 'disabled') + ' data-act="savegrid">Save schedule</button>' +
+        '<button class="btn" data-act="undo">Undo changes</button></div>' +
     '</div>';
   wireGrid();
 }
+// Pointer events (mouse + touch); only painted cells and the save button change,
+// so a clip that is playing keeps playing.
 function wireGrid() {
   const g = $('grid'); if (!g) return;
   let down = false;
-  const paint = td => { if (!td || !td.dataset.k) return; S.grid[td.dataset.k] = S.paint; S.gridDirty = true; };
-  g.onmousedown = e => { down = true; paint(e.target.closest('td')); e.preventDefault(); };
-  g.onmouseover = e => { if (down) { paint(e.target.closest('td')); } };
-  document.onmouseup = () => { if (down) { down = false; renderVoice(); } };
+  const paint = td => {
+    if (!td || !td.dataset.k || !g.contains(td)) return;
+    const k = td.dataset.k;
+    if ((S.grid[k] || '') !== S.paint) { S.grid[k] = S.paint; S.gridDirty = true; }
+    const i = cellInfo(k); td.style.background = i.bg; td.style.color = i.color; td.textContent = i.text;
+    const b = $('saveGrid'); if (b) b.disabled = !S.gridDirty;
+  };
+  g.onpointerdown = e => { const td = e.target.closest('td'); if (!td) return; down = true; paint(td); e.preventDefault(); };
+  g.onpointermove = e => { if (!down) return; const el = document.elementFromPoint(e.clientX, e.clientY); paint(el && el.closest('td')); };
+  document.onpointerup = document.onpointercancel = () => { down = false; };
 }
-async function saveGrid() {
-  S.voice = await call('apiSaveSchedule', S.brand.key, S.grid);
-  S.grid = Object.assign({}, S.voice.grid); S.gridDirty = false;
-  toast('Schedule saved. Live within 5 minutes.'); renderVoice();
+function pickBrush(el) {
+  S.paint = el.dataset.id;
+  el.parentNode.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === el));
 }
-async function makeDefault(id) { S.voice = await call('apiUpdateClip', S.brand.key, id, { makeDefault: true }); S.grid = Object.assign({}, S.voice.grid); renderVoice(); toast('Main clip changed. Live within 5 minutes.'); }
-async function removeClip(id) {
+function saveGrid(btn) {
+  const key = S.brand.key, sent = Object.assign({}, S.grid);
+  return busy(btn, 'Saving…', async () => {
+    const v = await call('apiSaveSchedule', key, sent);
+    if (!S.brand || S.brand.key !== key) return;
+    S.gridDirty = JSON.stringify(S.grid) !== JSON.stringify(sent);
+    setVoice(v); toast('Schedule saved. Live within 5 minutes.'); drawVoice();
+  });
+}
+function updateClip(btn, label, patch, msg) {
+  const key = S.brand.key;
+  return busy(btn, label, async () => {
+    const v = await call('apiUpdateClip', key, btn.dataset.id, patch);
+    if (!S.brand || S.brand.key !== key) return;
+    setVoice(v); drawVoice(); toast(msg);
+  });
+}
+function makeDefault(btn) { return updateClip(btn, 'Saving…', { makeDefault: true }, 'Main clip changed. Live within 5 minutes.'); }
+function removeClip(btn) {
   if (!confirm('Remove this clip? Any slots it had go back to the main clip.')) return;
-  S.voice = await call('apiUpdateClip', S.brand.key, id, { archive: true }); S.grid = Object.assign({}, S.voice.grid); renderVoice(); toast('Clip removed.');
+  return updateClip(btn, 'Removing…', { archive: true }, 'Clip removed.');
 }
-async function clipDates(id, start, end) {
-  const c = S.voice.clips.find(x => x.id === id);
-  S.voice = await call('apiUpdateClip', S.brand.key, id, { startDate: start != null ? start : c.startDate, endDate: end != null ? end : c.endDate });
-  toast('Dates saved.');
+function clipDates(el) {
+  const c = S.voice.clips.find(x => x.id === el.dataset.id); if (!c) return;
+  const ins = el.closest('.clip').querySelectorAll('input[type=date]'), start = ins[0].value, end = ins[1].value;
+  if (start && end && end < start) { toast('The end date is before the start date.', true); el.value = el === ins[0] ? c.startDate : c.endDate; return; }
+  return updateClip(el, null, { startDate: start, endDate: end }, 'Dates saved.');
 }
 
 // Decode any audio the browser can play, mix to mono, resample to 8 kHz,
@@ -428,45 +628,96 @@ async function prepClip() {
     w(36, 'data'); wav.setUint32(40, out.length * 2, true);
     for (let i = 0; i < out.length; i++) wav.setInt16(44 + i * 2, Math.max(-1, Math.min(1, out[i] * g)) * 32767, true);
     const blob = new Blob([wav], { type: 'audio/wav' });
-    PREPPED = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result.split(',')[1]); fr.readAsDataURL(blob); });
+    const data = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result.split(',')[1]); fr.readAsDataURL(blob); });
+    if (!$('prep') || $('file').files[0] !== f) return;
+    PREPPED = data;
     $('prep').innerHTML = 'Ready: ' + src.duration.toFixed(1) + ' s at phone quality. Listen before uploading: <audio controls src="' + URL.createObjectURL(blob) + '"></audio>';
     if (!$('clipName').value) $('clipName').value = f.name.replace(/\.[^.]+$/, '').slice(0, 40);
     $('upBtn').disabled = false;
-  } catch (e) { $('prep').innerHTML = '<span class="err">' + esc(e.message || 'This file could not be read.') + '</span>'; }
+  } catch (e) { const p = $('prep'); if (p) p.innerHTML = '<span class="err">' + esc(e.message || 'This file could not be read.') + '</span>'; }
 }
-async function uploadClip() {
-  if (!PREPPED) return;
-  $('upBtn').disabled = true; $('prep').textContent = 'Uploading…';
-  S.voice = await call('apiUploadClip', S.brand.key, $('clipName').value, PREPPED, '', '');
-  S.grid = Object.assign({}, S.voice.grid); PREPPED = null;
-  toast('Clip uploaded. Paint it onto the schedule to use it.'); renderVoice();
+async function uploadClip(btn) {
+  if (!PREPPED || btn.disabled) return;
+  const key = S.brand.key, name = $('clipName').value, data = PREPPED;
+  btn.disabled = true; btn.textContent = 'Uploading…'; $('prep').textContent = 'Uploading…';
+  let done = false;
+  try {
+    const v = await call('apiUploadClip', key, name, data, '', '');
+    done = true; if (PREPPED === data) PREPPED = null;
+    toast('Clip uploaded. Paint it onto the schedule to use it.');
+    if (S.brand && S.brand.key === key) { setVoice(v); drawVoice(); }
+  } catch (e) {
+    const p = $('prep'); if (p && !e.signedOut) p.innerHTML = '<span class="err">' + esc(e.message) + '</span>';
+  } finally { if (!done && btn.isConnected) { btn.disabled = false; btn.textContent = 'Upload'; } }
 }
 
 // ---------- activity ----------
-async function renderActivity() {
-  const a = await call('apiAudit', S.brand.key);
-  $('tab').innerHTML = '<div class="card"><h3>Recent changes</h3>' + tbl(['When','Who','What','Detail'], a.map(r => [esc(r.time), esc(r.email), esc(r.action), esc(r.detail)])) + '</div>';
+function renderActivity() {
+  return load('tab', async ok => {
+    const a = await call('apiAudit', S.brand.key);
+    if (!ok()) return;
+    $('tab').innerHTML = '<div class="card"><h3>Recent changes</h3>' + tbl(['When','Who','What','Detail'], a.map(r => [esc(r.time), esc(r.email), esc(r.action), esc(r.detail)])) + '</div>';
+  });
 }
 
 // ---------- access ----------
-async function renderAccess() {
-  const list = await call('apiAdmins');
-  const brandName = k => k === '*' ? 'All brands' : ((S.home.brands.find(b => b.key === k) || {}).name || k);
-  $('tab').innerHTML = '<div class="card"><h3>Who can use this dashboard</h3>' +
-    '<p class="muted">You see every brand. A brand manager sees only the brands ticked for them. Everyone signs in at this same link with a code sent to their email, and stays signed in for 30 days on each device. Removing someone here signs them out everywhere.</p>' +
-    tbl(['Email','Brands',''], list.map(r => [esc(r.email), esc(String(r.brands).split(',').map(x => brandName(x.trim())).join(', ')), '<button class="btn" data-email="' + esc(r.email) + '" onclick="delAdmin(this.dataset.email)">Remove</button>'])) +
-    '<div style="margin-top:14px"><b>Add or update a person</b></div>' +
-    '<div class="row" style="margin-top:8px"><input type="text" id="aEmail" placeholder="email (or paste Name &lt;email&gt;)" style="min-width:320px"></div>' +
-    '<div class="chips" id="aBrands">' + S.home.brands.map(b => '<label class="chip"><input type="checkbox" value="' + b.key + '"' + (b.key === S.brand.key ? ' checked' : '') + '> ' + esc(b.name) + '</label>').join('') + '</div>' +
-    '<button class="btn primary" onclick="addAdmin()">Give access</button></div>';
+function renderAccess() {
+  return load('tab', async ok => {
+    const list = await call('apiAdmins');
+    if (!ok()) return;
+    const brandName = k => k === '*' ? 'All brands' : ((S.home.brands.find(b => b.key === k) || {}).name || k);
+    $('tab').innerHTML = '<div class="card"><h3>Who can use this dashboard</h3>' +
+      '<p class="muted">You see every brand. A brand manager sees only the brands ticked for them. Everyone signs in at this same link with a code sent to their email, and stays signed in for 30 days on each device. Removing someone here signs them out everywhere.</p>' +
+      tbl(['Email','Brands',''], list.map(r => [esc(r.email), esc(String(r.brands).split(',').map(x => brandName(x.trim())).join(', ')), '<button class="btn" data-act="deladmin" data-email="' + esc(r.email) + '">Remove</button>'])) +
+      '<div style="margin-top:14px"><b>Add or update a person</b></div>' +
+      '<div class="row" style="margin-top:8px"><input type="text" id="aEmail" placeholder="email (or paste Name &lt;email&gt;)" style="flex:1;min-width:0;max-width:420px"></div>' +
+      '<div class="chips" id="aBrands">' + S.home.brands.map(b => '<label class="chip"><input type="checkbox" value="' + esc(b.key) + '"' + (b.key === S.brand.key ? ' checked' : '') + '> ' + esc(b.name) + '</label>').join('') + '</div>' +
+      '<button class="btn primary" data-act="addadmin">Give access</button></div>';
+  });
 }
-async function addAdmin() {
+function addAdmin(btn) {
   const brands = Array.from(document.querySelectorAll('#aBrands input:checked')).map(i => i.value).join(',');
-  await call('apiSaveAdmin', $('aEmail').value, brands, false); toast('Access saved. They can open the same dashboard link.'); renderAccess();
+  const email = $('aEmail').value;
+  return busy(btn, 'Saving…', async () => { await call('apiSaveAdmin', email, brands, false); toast('Access saved. They can open the same dashboard link.'); renderAccess(); });
 }
-async function delAdmin(e) { if (!confirm('Remove ' + e + '?')) return; await call('apiSaveAdmin', e, '', true); renderAccess(); }
+function delAdmin(btn) {
+  const e = btn.dataset.email;
+  if (!confirm('Remove ' + e + '?')) return;
+  return busy(btn, 'Removing…', async () => { await call('apiSaveAdmin', e, '', true); renderAccess(); });
+}
 
-goHome();
+// ---------- events ----------
+const ACT = {
+  home: () => goHome(), signout: () => signOut(),
+  brand: el => openBrand(el.dataset.key), tab: el => showTab(el.dataset.tab),
+  summode: el => { S.sumMode = el.dataset.m; if (S.summary) drawSummary(S.summary); },
+  setlive: el => setLive(el, el.dataset.on === '1'), plivo: el => savePlivo(el),
+  shown: el => setShown(el.dataset.on === '1'), savestores: el => saveStores(el),
+  sub: el => { S.subFilter = el.dataset.sub; drawStores(); }, city: el => { S.cityFilter = el.dataset.city; drawStores(); },
+  brush: el => pickBrush(el), makedefault: el => makeDefault(el), removeclip: el => removeClip(el),
+  showdates: el => { S.showDates = el.dataset.id; drawVoice(); },
+  upload: el => uploadClip(el), savegrid: el => saveGrid(el), undo: () => renderVoice(true),
+  addadmin: el => addAdmin(el), deladmin: el => delAdmin(el)
+};
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (!el || !ACT[el.dataset.act]) return;
+  if (el.tagName === 'A') e.preventDefault();
+  ACT[el.dataset.act](el);
+});
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset.store != null) flip(t.dataset.store, t.checked);
+  else if (t.dataset.chg === 'dates') clipDates(t);
+  else if (t.id === 'file') prepClip();
+});
+document.addEventListener('input', e => { if (e.target.id === 'storeQ') filterStores(e.target.value); });
+window.addEventListener('beforeunload', e => { if (dirty()) { e.preventDefault(); e.returnValue = ''; } });
+window.addEventListener('hashchange', route);
+
+// Owners: fetch the summary alongside apiHome instead of after it.
+try { if (TOKEN && localStorage.getItem(ROLE_KEY) === 'owner') loadSummary(); } catch (e) {}
+route();
 </script>
 </body>
 </html>
