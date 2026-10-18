@@ -257,7 +257,9 @@ async function renderStores() {
   if (!S.stores) S.stores = await call('apiStores', S.brand.key);
   const cities = ['All', ...Array.from(new Set(S.stores.map(s => s.city))).sort()];
   const active = id => (id in S.storeChanges) ? S.storeChanges[id] : S.stores.find(s => s.id === id).active;
-  const shown = S.stores.filter(s => (S.cityFilter === 'All' || s.city === S.cityFilter) &&
+  const subs = Array.from(new Set(S.stores.map(s => s.sub).filter(Boolean))).sort();
+  if (!S.subFilter || (S.subFilter !== 'All' && subs.indexOf(S.subFilter) === -1)) S.subFilter = 'All';
+  const shown = S.stores.filter(s => (S.subFilter === 'All' || s.sub === S.subFilter) && (S.cityFilter === 'All' || s.city === S.cityFilter) &&
     (!S.q || (s.name + ' ' + s.city).toLowerCase().includes(S.q)));
   const onCount = S.stores.filter(s => active(s.id)).length;
   const pending = Object.keys(S.storeChanges).length;
@@ -266,9 +268,11 @@ async function renderStores() {
       '<input type="search" placeholder="Search store" value="' + esc(S.q || '') + '" oninput="S.q=this.value.toLowerCase();renderStores()" style="margin-left:auto">' +
       '<button class="btn" onclick="setShown(true)">Turn on shown</button><button class="btn" onclick="setShown(false)">Turn off shown</button>' +
       '<button class="btn primary" ' + (pending ? '' : 'disabled') + ' onclick="saveStores()">Save' + (pending ? ' (' + pending + ')' : '') + '</button></div>' +
-    '<div class="chips">' + cities.map(c => '<span class="chip ' + (c === S.cityFilter ? 'on' : '') + '" data-city="' + esc(c) + '" onclick="S.cityFilter=this.dataset.city;renderStores()">' + esc(c) +
+    (subs.length > 1 ? '<div class="chips"><span class="muted" style="align-self:center">Sub-brand</span>' + ['All'].concat(subs).map(b => '<span class="chip ' + (b === S.subFilter ? 'on' : '') + '" data-sub="' + esc(b) + '" onclick="S.subFilter=this.dataset.sub;renderStores()">' + esc(b) +
+      (b === 'All' ? '' : ' ' + S.stores.filter(s => s.sub === b && active(s.id)).length + '/' + S.stores.filter(s => s.sub === b).length) + '</span>').join('') + '</div>' : '') +
+    '<div class="chips">' + (subs.length > 1 ? '<span class="muted" style="align-self:center">City</span>' : '') + cities.map(c => '<span class="chip ' + (c === S.cityFilter ? 'on' : '') + '" data-city="' + esc(c) + '" onclick="S.cityFilter=this.dataset.city;renderStores()">' + esc(c) +
       (c === 'All' ? '' : ' ' + S.stores.filter(s => s.city === c && active(s.id)).length + '/' + S.stores.filter(s => s.city === c).length) + '</span>').join('') + '</div>' +
-    '<div class="stores">' + shown.map(s => '<div class="store"><div>' + esc(s.name) + '<span class="city">' + esc(s.city) + '</span></div>' +
+    '<div class="stores">' + shown.map(s => '<div class="store"><div>' + esc(s.name) + '<span class="city">' + esc(s.city) + (subs.length > 1 ? ' · ' + esc(s.sub) : '') + '</span></div>' +
       '<label class="toggle"><input type="checkbox" ' + (active(s.id) ? 'checked' : '') + ' onchange="flip(\'' + s.id + '\',this.checked)"><span></span></label></div>').join('') + '</div>' +
     '<p class="muted">Changes go live on the next order check (within about 5 minutes).</p></div>';
   const q = document.querySelector('input[type=search]'); if (S.q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
@@ -279,7 +283,7 @@ function flip(id, on) {
   renderStores();
 }
 function setShown(on) {
-  S.stores.filter(s => (S.cityFilter === 'All' || s.city === S.cityFilter) && (!S.q || (s.name + ' ' + s.city).toLowerCase().includes(S.q)))
+  S.stores.filter(s => (S.subFilter === 'All' || s.sub === S.subFilter) && (S.cityFilter === 'All' || s.city === S.cityFilter) && (!S.q || (s.name + ' ' + s.city).toLowerCase().includes(S.q)))
     .forEach(s => { if (on === s.active) delete S.storeChanges[s.id]; else S.storeChanges[s.id] = on; });
   renderStores();
 }
