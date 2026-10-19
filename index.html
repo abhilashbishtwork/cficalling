@@ -330,8 +330,8 @@ function drawSummary(data) {
     return '<span style="display:inline-flex;align-items:flex-end;gap:2px;height:22px">' + vals.map(v => '<i style="display:inline-block;width:' + (vals.length > 10 ? 3 : 7) + 'px;height:' + Math.max(2, Math.round(22 * v / m)) + 'px;background:var(--accent);border-radius:1px"></i>').join('') + '</span>'; };
   const rs = n => '₹' + Math.round(n).toLocaleString('en-IN');
   const perCall = v => v.logged ? '₹' + (v.cost / v.logged).toFixed(2) : '–';
-  const row = (name, yv, dv, sp, wk) => '<tr><td>' + name + '</td><td class="n">' + fmt(yv.orders) + '</td><td class="n">' + fmt(yv.placed) + ' ' + cmp(yv.placed, dv.placed) + '</td><td class="n">' + fmt(yv.heard) + '</td><td class="n">' + pct(yv.heard, yv.placed) + '</td><td class="n">' + pct(yv.logged, yv.orders) + '</td><td class="n">' + fmt(wk) + '</td><td>' + sp + '</td><td class="n">' + rs(yv.cost) + '</td><td class="n">' + perCall(yv) + '</td></tr>';
-  const nameCell = b => '<span style="display:inline-flex;align-items:center;gap:8px">' + logoHtml(b.key, b.name, true) + esc(b.name) + '</span>';
+  const row = (name, yv, dv, sp, wk) => '<tr><td>' + name + '</td><td class="n">' + fmt(yv.orders) + '</td><td class="n">' + fmt(yv.placed) + ' ' + cmp(yv.placed, dv.placed) + '</td><td class="n">' + pct(yv.logged, yv.orders) + '</td><td class="n">' + fmt(yv.heard) + '</td><td class="n">' + pct(yv.heard, yv.placed) + '</td><td class="n">' + fmt(wk) + '</td><td class="n">' + rs(yv.cost) + '</td><td class="n">' + perCall(yv) + '</td></tr>';
+  const nameCell = b => esc(b.name);
   const live = data.filter(b => b.days.length || b.error);
   const total = { orders: sumAll(cur, 'orders'), placed: sumAll(cur, 'placed'), heard: sumAll(cur, 'heard'), logged: sumAll(cur, 'logged'), cost: sumAll(cur, 'cost') }, totPrev = { placed: sumAll(prev, 'placed') };
   // Per day averages over days that had calls, so brands that went live mid-month aren't diluted.
@@ -349,12 +349,12 @@ function drawSummary(data) {
       (isMtd ? '<div class="kpi"><div class="v">' + fmt(Math.round(total.placed / Math.max(1, liveDays))) + '</div><div class="l">Calls per day on average (days with calls)</div></div>'
       : '<div class="kpi"><div class="v">' + fmt(wkTotal) + '</div><div class="l">Calls in the last ' + dayList.length + (isToday ? ' days (incl. today)' : ' full days') + '</div></div>') +
     '</div>' +
-    '<div style="overflow:auto"><table><tr><th>Brand</th><th class="n">Total orders</th><th class="n">Calls done ' + label(y) + '</th><th class="n">Heard calls</th><th class="n">Heard %</th><th class="n">Call rate</th><th class="n">' + (isMtd ? 'Calls per day' : 'Calls last ' + dayList.length + ' days') + '</th><th>Trend</th><th class="n">Cost</th><th class="n">Cost / call</th></tr>' +
-      live.map(b => b.error ? '<tr><td>' + nameCell(b) + '</td><td colspan="9" class="err">Couldn\'t read its call log</td></tr>'
-        : row(nameCell(b), agg(b, cur), agg(b, prev), spark(b), lastCol(b))).join('') +
+    '<div style="overflow:auto"><table><tr><th>Brand</th><th class="n">Total orders</th><th class="n">Calls done ' + label(y) + '</th><th class="n">Call rate</th><th class="n">Heard calls</th><th class="n">Heard %</th><th class="n">' + (isMtd ? 'Calls per day' : 'Calls last ' + dayList.length + ' days') + '</th><th class="n">Cost</th><th class="n">Cost / call</th></tr>' +
+      live.map(b => b.error ? '<tr><td>' + nameCell(b) + '</td><td colspan="8" class="err">Couldn\'t read its call log</td></tr>'
+        : row(nameCell(b), agg(b, cur), agg(b, prev), "", lastCol(b))).join('') +
       '<tr style="font-weight:600">' + row('All brands', total, totPrev, '', isMtd ? Math.round(total.placed / Math.max(1, liveDays)) : wkTotal).slice(4) +
     '</table></div>' +
-    '<p class="muted">' + (isToday ? 'Today is still in progress, so its numbers keep growing until midnight.' : isMtd ? 'Month to date: full days from the 1st to yesterday, compared with the same days last month. Brands that went live this month have no comparison.' : 'Full days only (today is still in progress).') + ' Heard % = calls where the customer listened to the whole message. Call rate = orders we called ÷ Swiggy + Zomato orders (never above 100%). Trend bars = calls per day, oldest to newest. Cost = Plivo billing ($0.00475/min, 30 s blocks; unanswered calls are free) at ₹81/$; cost / call = cost ÷ calls in our log. Slots go by the time the call was made.</p></div>';
+    '<p class="muted">' + (isToday ? 'Today is still in progress, so its numbers keep growing until midnight.' : isMtd ? 'Month to date: full days from the 1st to yesterday, compared with the same days last month. Brands that went live this month have no comparison.' : 'Full days only (today is still in progress).') + ' Heard % = calls where the customer listened to the whole message. Call rate = orders we called ÷ Swiggy + Zomato orders (never above 100%). Cost = Plivo billing ($0.00475/min, 30 s blocks; unanswered calls are free) at ₹81/$; cost / call = cost ÷ calls in our log. Slots go by the time the call was made.</p></div>';
 }
 
 // ---------- overview ----------
