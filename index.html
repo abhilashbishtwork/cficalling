@@ -294,37 +294,56 @@ function drawSummary(data) {
   const fullDays = Array.from(new Set([].concat(...data.map(b => b.days.map(d => d.date))))).filter(d => d < today).sort().reverse();
   // Yesterday (full day) or today so far. Default: yesterday before 12 PM IST, today after.
   if (!S.sumMode) S.sumMode = istHour() < 12 ? 'y' : 't';
-  const isToday = S.sumMode === 't';
-  const dayList = (isToday ? [today].concat(fullDays) : fullDays).slice(0, 7);
-  const y = dayList[0], dby = dayList[1];
+  const isToday = S.sumMode === 't', isMtd = S.sumMode === 'm';
+  let dayList = (isToday ? [today].concat(fullDays) : fullDays).slice(0, 7);
+  let cur = [dayList[0]], prev = isToday ? [] : [dayList[1]];
+  // MTD: 1st of the month to yesterday (today so far on the 1st), vs the same days last month.
+  let mtdLabel = '', prevLabel = '';
+  if (isMtd) {
+    const ym = today.slice(0, 7), dd = Number(today.slice(8));
+    const end = dd > 1 ? dd - 1 : 1;
+    const pd = new Date(Date.UTC(Number(ym.slice(0, 4)), Number(ym.slice(5)) - 2, 1));
+    const pym = pd.toISOString().slice(0, 7), pLast = new Date(Date.UTC(pd.getUTCFullYear(), pd.getUTCMonth() + 1, 0)).getUTCDate();
+    const two = n => String(n).padStart(2, '0');
+    cur = []; prev = [];
+    for (let i = 1; i <= end; i++) { cur.push(ym + '-' + two(i)); if (i <= pLast) prev.push(pym + '-' + two(i)); }
+    dayList = cur.slice().reverse();
+    const mon = d => new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { month: 'short' });
+    mtdLabel = '1–' + end + ' ' + mon(cur[0]) + (dd === 1 ? ' (today so far)' : '');
+    prevLabel = '1–' + Math.min(end, pLast) + ' ' + mon(prev[0]);
+  }
+  const y = cur[0], dby = prev[0];
   const nowLabel = new Date().toLocaleTimeString('en-IN', { timeZone: IST, hour: 'numeric', minute: '2-digit' });
   const get = (b, d) => b.days.find(x => x.date === d) || { orders: 0, placed: 0, heard: 0 };
-  const sum = (d, f) => data.reduce((a, b) => a + get(b, d)[f], 0);
+  const agg = (b, ds) => ds.reduce((a, d) => { const g = get(b, d); return { orders: a.orders + g.orders, placed: a.placed + g.placed, heard: a.heard + g.heard }; }, { orders: 0, placed: 0, heard: 0 });
+  const sumAll = (ds, f) => data.reduce((a, b) => a + agg(b, ds)[f], 0);
   const fmt = n => n.toLocaleString('en-IN');
   const delta = (a, b) => !b ? '' : '<span style="color:' + (a >= b ? 'var(--accent)' : 'var(--bad)') + '">' + (a >= b ? '▲' : '▼') + ' ' + Math.abs(Math.round(100 * (a - b) / b)) + '%</span>';
-  const label = d => !d ? '' : (isToday && d === today ? 'today (till ' + nowLabel + ')' : new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }));
+  const label = d => isMtd ? mtdLabel : !d ? '' : (isToday && d === today ? 'today (till ' + nowLabel + ')' : new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }));
   const cmp = (a, b) => isToday ? '' : delta(a, b);
   const spark = b => { const vals = dayList.slice().reverse().map(d => get(b, d).placed); const m = Math.max(1, ...vals);
-    return '<span style="display:inline-flex;align-items:flex-end;gap:2px;height:22px">' + vals.map(v => '<i style="display:inline-block;width:7px;height:' + Math.max(2, Math.round(22 * v / m)) + 'px;background:var(--accent);border-radius:1px"></i>').join('') + '</span>'; };
+    return '<span style="display:inline-flex;align-items:flex-end;gap:2px;height:22px">' + vals.map(v => '<i style="display:inline-block;width:' + (vals.length > 10 ? 3 : 7) + 'px;height:' + Math.max(2, Math.round(22 * v / m)) + 'px;background:var(--accent);border-radius:1px"></i>').join('') + '</span>'; };
   const row = (name, yv, dv, sp, wk) => '<tr><td>' + name + '</td><td class="n">' + fmt(yv.placed) + ' ' + cmp(yv.placed, dv.placed) + '</td><td class="n">' + pct(yv.heard, yv.placed) + '</td><td class="n">' + pct(yv.placed, yv.orders) + '</td><td class="n">' + fmt(wk) + '</td><td>' + sp + '</td></tr>';
   const nameCell = b => '<span style="display:inline-flex;align-items:center;gap:8px">' + logoHtml(b.key, b.name, true) + esc(b.name) + '</span>';
   const live = data.filter(b => b.days.length || b.error);
-  const total = { orders: sum(y, 'orders'), placed: sum(y, 'placed'), heard: sum(y, 'heard') }, totPrev = { placed: sum(dby, 'placed') };
-  const wkTotal = dayList.reduce((a, d) => a + sum(d, 'placed'), 0);
+  const total = { orders: sumAll(cur, 'orders'), placed: sumAll(cur, 'placed'), heard: sumAll(cur, 'heard') }, totPrev = { placed: sumAll(prev, 'placed') };
+  const wkTotal = dayList.reduce((a, d) => a + sumAll([d], 'placed'), 0);
+  const lastCol = (b) => isMtd ? Math.round(agg(b, cur).placed / Math.max(1, cur.length)) : dayList.reduce((a, d) => a + get(b, d).placed, 0);
   box.innerHTML = '<div class="card"><div class="row" style="margin-bottom:10px"><h3 style="margin:0">All brands summary <span class="muted" style="font-weight:400">· only you can see this</span></h3>' +
-    '<span class="chips" style="margin:0 0 0 auto">' + [['y', 'Yesterday'], ['t', 'Today so far']].map(m => '<span class="chip ' + (S.sumMode === m[0] ? 'on' : '') + '" data-act="summode" data-m="' + m[0] + '">' + m[1] + '</span>').join('') + '</span></div>' +
+    '<span class="chips" style="margin:0 0 0 auto">' + [['m', 'MTD'], ['y', 'Yesterday'], ['t', 'Today so far']].map(m => '<span class="chip ' + (S.sumMode === m[0] ? 'on' : '') + '" data-act="summode" data-m="' + m[0] + '">' + m[1] + '</span>').join('') + '</span></div>' +
     '<div class="kpis">' +
-      '<div class="kpi"><div class="v">' + fmt(total.placed) + '</div><div class="l">Calls made ' + label(y) + (isToday ? '' : ' ' + delta(total.placed, totPrev.placed) + ' vs ' + label(dby)) + '</div></div>' +
+      '<div class="kpi"><div class="v">' + fmt(total.placed) + '</div><div class="l">Calls made ' + label(y) + (isToday || !totPrev.placed ? '' : ' ' + delta(total.placed, totPrev.placed) + ' vs ' + (isMtd ? prevLabel : label(dby))) + '</div></div>' +
       '<div class="kpi"><div class="v">' + fmt(total.heard) + '</div><div class="l">Heard the full message (' + pct(total.heard, total.placed) + ')</div></div>' +
       '<div class="kpi"><div class="v">' + pct(total.placed, total.orders) + '</div><div class="l">Call rate: calls ÷ ' + fmt(total.orders) + ' Swiggy + Zomato orders</div></div>' +
-      '<div class="kpi"><div class="v">' + fmt(wkTotal) + '</div><div class="l">Calls in the last ' + dayList.length + (isToday ? ' days (incl. today)' : ' full days') + '</div></div>' +
+      (isMtd ? '<div class="kpi"><div class="v">' + fmt(Math.round(total.placed / Math.max(1, cur.length))) + '</div><div class="l">Calls per day on average</div></div>'
+      : '<div class="kpi"><div class="v">' + fmt(wkTotal) + '</div><div class="l">Calls in the last ' + dayList.length + (isToday ? ' days (incl. today)' : ' full days') + '</div></div>') +
     '</div>' +
-    '<div style="overflow:auto"><table><tr><th>Brand</th><th class="n">Calls ' + label(y) + '</th><th class="n">Heard %</th><th class="n">Call rate</th><th class="n">Last ' + dayList.length + ' days</th><th>Trend</th></tr>' +
+    '<div style="overflow:auto"><table><tr><th>Brand</th><th class="n">Calls ' + label(y) + '</th><th class="n">Heard %</th><th class="n">Call rate</th><th class="n">' + (isMtd ? 'Per day' : 'Last ' + dayList.length + ' days') + '</th><th>Trend</th></tr>' +
       live.map(b => b.error ? '<tr><td>' + nameCell(b) + '</td><td colspan="5" class="err">Couldn\'t read its call log</td></tr>'
-        : row(nameCell(b), get(b, y), get(b, dby), spark(b), dayList.reduce((a, d) => a + get(b, d).placed, 0))).join('') +
-      '<tr style="font-weight:600">' + row('All brands', total, totPrev, '', wkTotal).slice(4) +
+        : row(nameCell(b), agg(b, cur), agg(b, prev), spark(b), lastCol(b))).join('') +
+      '<tr style="font-weight:600">' + row('All brands', total, totPrev, '', isMtd ? Math.round(total.placed / Math.max(1, cur.length)) : wkTotal).slice(4) +
     '</table></div>' +
-    '<p class="muted">' + (isToday ? 'Today is still in progress, so its numbers keep growing until midnight.' : 'Full days only (today is still in progress).') + ' Heard % = calls where the customer listened to the whole message. Trend bars = calls per day, oldest to newest.</p></div>';
+    '<p class="muted">' + (isToday ? 'Today is still in progress, so its numbers keep growing until midnight.' : isMtd ? 'Month to date: full days from the 1st to yesterday, compared with the same days last month. Brands that went live this month have no comparison.' : 'Full days only (today is still in progress).') + ' Heard % = calls where the customer listened to the whole message. Trend bars = calls per day, oldest to newest.</p></div>';
 }
 
 // ---------- overview ----------
