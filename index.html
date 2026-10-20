@@ -150,6 +150,7 @@ function raw(fn, ...args) { return post(fn === 'requestCode' ? { action: fn, ema
 function signOutLocal() {
   try { localStorage.removeItem('cfi_calling_token'); localStorage.removeItem(ROLE_KEY); } catch (e) {}
   TOKEN = ''; S.home = null; S.homeP = null; S.summary = null; S.sumP = null; S.ov = {};
+  try { localStorage.removeItem(SAVED_KEY); } catch (e) {}
 }
 async function signOut() {
   if (!leaveOk()) return;
@@ -213,13 +214,20 @@ function nav(h) { if (decodeURIComponent(location.hash.slice(1)) === h) route();
 function goHome() { if (leaveOk()) nav(''); }
 function openBrand(key) { if (leaveOk()) nav(key + '/overview'); }
 function showTab(tab) { if (S.brand) nav(S.brand.key + '/' + tab); }
+// Last loaded screens are kept on this device and shown at once on the next
+// visit; fresh numbers replace them as soon as they arrive.
+const SAVED_KEY = 'cfi_calling_saved_v1';
+function saveScreens_() { try { localStorage.setItem(SAVED_KEY, JSON.stringify({ home: S.home, summary: S.summary, ov: S.ov })); } catch (e) {} }
+function loadScreens_() { try { const v = JSON.parse(localStorage.getItem(SAVED_KEY) || 'null'); if (v) { S.home = S.home || v.home; S.summary = S.summary || v.summary; S.ov = Object.assign(v.ov || {}, S.ov || {}); } } catch (e) {} }
 function loadHome() {
   if (!S.homeP) {
     const p = S.homeP = call('apiHome').then(h => {
-      if (S.homeP === p) { S.home = h; try { localStorage.setItem(ROLE_KEY, h.role); } catch (e) {} }
+      if (S.homeP === p) { S.home = h; try { localStorage.setItem(ROLE_KEY, h.role); } catch (e) {} saveScreens_(); }
       return h;
     });
     p.catch(() => { if (S.homeP === p) S.homeP = null; });
+    // A saved copy answers at once; the request above refreshes it.
+    if (S.home && !S.homeFresh) { S.homeFresh = true; p.then(() => { if (!S.brand && S.home) route(); }).catch(() => {}); return Promise.resolve(S.home); }
   }
   return S.homeP;
 }
@@ -276,7 +284,7 @@ function renderHome() {
 function loadSummary() {
   if (S.sumP && Date.now() - S.sumAt < 120e3) return S.sumP;
   S.sumAt = Date.now();
-  const p = S.sumP = call('apiOwnerSummary').then(d => { if (S.sumP === p) S.summary = d; return d; });
+  const p = S.sumP = call('apiOwnerSummary').then(d => { if (S.sumP === p) { S.summary = d; saveScreens_(); } return d; });
   p.catch(() => { if (S.sumP === p) S.sumP = null; });
   return p;
 }
@@ -387,7 +395,7 @@ async function renderOverview() {
     const o = await call('apiOverview', key);
     // A go-live / number change landed after this request started: keep its readiness.
     if (t0 < (S.mut['ov_' + key] || 0) && S.ov[key]) o.ready = S.ov[key].ready;
-    S.ov[key] = o;
+    S.ov[key] = o; saveScreens_();
     if (ok()) drawOverview(o);
   } catch (e) { const box = $('tab'); if (ok() && box && !had && !e.signedOut) showErr(box, e, renderOverview); }
 }
@@ -811,6 +819,7 @@ window.addEventListener('beforeunload', e => { if (dirty()) { e.preventDefault()
 window.addEventListener('hashchange', route);
 
 // Owners: fetch the summary alongside apiHome instead of after it.
+if (TOKEN) loadScreens_();
 try { if (TOKEN && localStorage.getItem(ROLE_KEY) === 'owner') loadSummary(); } catch (e) {}
 route();
 </script>
