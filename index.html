@@ -357,6 +357,27 @@ function drawSummary(data) {
     '<p class="muted">' + (isToday ? 'Today is still in progress, so its numbers keep growing until midnight.' : isMtd ? 'Month to date: full days from the 1st to yesterday, compared with the same days last month. Brands that went live this month have no comparison.' : 'Full days only (today is still in progress).') + ' Heard % = calls where the customer listened to the whole message. Call rate = orders we called ÷ Swiggy + Zomato orders (never above 100%). Cost = Plivo billing ($0.00475/min, 30 s blocks; unanswered calls are free) at ₹81/$; cost / call = cost ÷ calls in our log. Slots go by the time the call was made.</p></div>';
 }
 
+// Uploaded clips live on Drive, which a browser signed in to Google can't stream;
+// those are fetched through the API on first play and played from memory.
+// A tiny silent WAV keeps the play button enabled until the real audio loads.
+const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=';
+function player(c) {
+  const drive = /drive\.usercontent\.google\.com|drive\.google\.com/.test(c.url || '');
+  return drive ? '<audio controls preload="none" data-clip="' + esc(c.id) + '" src="' + SILENT + '"></audio>' : '<audio controls preload="none" src="' + esc(c.url) + '"></audio>';
+}
+document.addEventListener('play', async e => {
+  const a = e.target;
+  if (!(a instanceof HTMLAudioElement) || !a.dataset.clip || a.dataset.loaded) return;
+  a.pause(); a.dataset.loaded = '1';
+  try {
+    const b64 = await call('apiClipAudio', S.brand.key, a.dataset.clip);
+    const bin = atob(b64), u8 = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    a.src = URL.createObjectURL(new Blob([u8], { type: 'audio/wav' }));
+    a.play();
+  } catch (err) { delete a.dataset.loaded; toast(err.message || 'Could not load the clip.', true); }
+}, true);
+
 // ---------- overview ----------
 // Shows the last overview of this brand at once, then refreshes it quietly.
 async function renderOverview() {
@@ -554,13 +575,13 @@ function drawVoice() {
   box.innerHTML =
     '<div class="card" style="border-color:var(--accent)">' +
       '<div class="muted">Customers are hearing right now (' + esc(v.live.day + ' ' + v.live.slot) + ')</div>' +
-      (liveClip ? '<div class="row" style="margin-top:6px"><span style="font-size:18px;font-weight:650">' + esc(liveClip.name) + '</span><audio controls preload="none" src="' + esc(liveClip.url) + '"></audio></div>'
+      (liveClip ? '<div class="row" style="margin-top:6px"><span style="font-size:18px;font-weight:650">' + esc(liveClip.name) + '</span>' + player(liveClip) + '</div>'
                 : '<div style="font-size:18px;font-weight:650;margin-top:6px">' + esc(v.live.label) + '</div>') +
     '</div>' +
     '<div class="card"><h3>Voice clips</h3>' +
       v.clips.map(c => '<div class="clip"><span class="swatch" style="background:' + color(c.id) + '"></span><span class="nm">' + esc(c.name) +
           (c.isDefault ? ' <span class="pill" style="background:#eef2ff;color:#3730a3">Main clip</span>' : '') + ' ' + status(c) + '</span>' +
-        '<audio controls preload="none" src="' + esc(c.url) + '"></audio>' +
+        player(c) +
         (c.isDefault ? '' : '<button class="btn" data-act="makedefault" data-id="' + esc(c.id) + '">Make main clip</button><button class="btn" data-act="removeclip" data-id="' + esc(c.id) + '">Remove</button>') +
         ((c.startDate || c.endDate || S.showDates === c.id)
           ? '<span class="muted">Only between</span><input type="date" value="' + esc(c.startDate) + '" data-chg="dates" data-id="' + esc(c.id) + '"><span class="muted">and</span><input type="date" value="' + esc(c.endDate) + '" data-chg="dates" data-id="' + esc(c.id) + '">'
