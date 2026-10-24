@@ -82,6 +82,15 @@
   .loading { color:var(--muted); padding:30px; text-align:center; }
   .legend { display:flex; gap:14px; font-size:12px; color:var(--muted); margin-top:8px; }
   .legend i { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:4px; vertical-align:-1px; }
+  .kpi .d { font-size:12px; margin-top:2px; }
+  th.sort { cursor:pointer; white-space:nowrap; user-select:none; }
+  th.sort:hover { color:var(--ink); }
+  td.flag-bad { background:#fef2f2; color:var(--bad); }
+  td.flag-warn { background:#fffbeb; color:var(--warn); }
+  .insights { margin:0; padding-left:18px; }
+  .insights li { margin:4px 0; }
+  .plat-sw { display:inline-flex; align-items:center; gap:6px; font-size:13px; cursor:pointer; white-space:nowrap; }
+  td.n, th.n { white-space:nowrap; }
 </style>
 </head>
 <body>
@@ -95,7 +104,11 @@
 
 <script>
 const S = { home:null, homeP:null, brand:null, tab:null, stores:null, storeById:{}, storeChanges:{}, voice:null, grid:{}, gridDirty:false, paint:'', cityFilter:'All', subFilter:null, q:'',
-  seq:0, ov:{}, mut:{}, summary:null, sumP:null, sumAt:0, lastHash:'' };
+  seq:0, ov:{}, mut:{}, summary:null, sumP:null, sumAt:0, lastHash:'',
+  // Overview analytics: results by "brand|period|platform", in-flight requests, store table state.
+  an:{}, anP:{}, anPeriod:'today', anPlat:'all', stSort:{ k:'callRate', asc:true }, stView:'all', stQ:'',
+  // Owner summary by platform (apiAnalyticsAll): results by "period|platform".
+  sumPlat:'all', anAll:{}, anAllP:{} };
 // Brand logos (logos/<key>.png); brands without one get an initials badge.
 const LOGOS = ['kk', 'sb', 'ar', 'me', 'mcrc', 'roz', 'nomad', 'olio', 'cz', 'eatfit'];
 const INITIALS = {};
@@ -149,7 +162,7 @@ async function call(fn, ...args) {
 function raw(fn, ...args) { return post(fn === 'requestCode' ? { action: fn, email: args[0] } : { action: fn, email: args[0], code: args[1] }, false); }
 function signOutLocal() {
   try { localStorage.removeItem('cfi_calling_token'); localStorage.removeItem(ROLE_KEY); } catch (e) {}
-  TOKEN = ''; S.home = null; S.homeP = null; S.summary = null; S.sumP = null; S.ov = {};
+  TOKEN = ''; S.home = null; S.homeP = null; S.summary = null; S.sumP = null; S.ov = {}; S.an = {}; S.anAll = {};
   try { localStorage.removeItem(SAVED_KEY); } catch (e) {}
 }
 async function signOut() {
@@ -260,7 +273,7 @@ async function route() {
 }
 function enterBrand(b) {
   S.brand = b; S.stores = null; S.storeById = {}; S.voice = null; S.storeChanges = {}; S.grid = {}; S.gridDirty = false; S.paint = ''; S.showDates = null;
-  S.subFilter = null; S.cityFilter = 'All'; S.q = '';
+  S.subFilter = null; S.cityFilter = 'All'; S.q = ''; S.stQ = ''; S.stView = 'all';
   $('crumb2').innerHTML = '› ' + logoHtml(b.key, b.name, true) + ' ' + esc(b.name);
 }
 function renderTab(tab) {
@@ -295,9 +308,20 @@ async function renderOwnerSummary() {
   catch (e) { const box = $('ownerSummary'); if (ok() && box && !had && !e.signedOut) showErr(box, e, renderOwnerSummary); }
 }
 
+// Summary card header: period, platform and slot chips.
+function sumHead() {
+  const chips = (act, attr, cur, list) => list.map(m => '<span class="chip ' + (cur === m[0] ? 'on' : '') + '" data-act="' + act + '" data-' + attr + '="' + m[0] + '">' + m[1] + '</span>').join('');
+  return '<div class="row" style="margin-bottom:10px"><h3 style="margin:0">All brands summary <span class="muted" style="font-weight:400">· only you can see this</span></h3>' +
+    '<span class="chips" style="margin:0 0 0 auto">' + chips('summode', 'm', S.sumMode, [['m', 'MTD'], ['y', 'Yesterday'], ['t', 'Today so far']]) + '</span></div>' +
+    '<div class="row" style="margin:0 0 12px"><span class="chips" style="margin:0">' + chips('sumslot', 's', S.sumSlot || '', [['', 'All day'], ['breakfast', 'Breakfast'], ['lunch', 'Lunch'], ['snacks', 'Snacks'], ['dinner', 'Dinner'], ['late', 'Late night']]) + '</span>' +
+    '<span class="chips" style="margin:0 0 0 auto">' + chips('sumplat', 'p', S.sumPlat, [['all', 'All platforms'], ['Swiggy', 'Swiggy'], ['Zomato', 'Zomato']]) + '</span></div>';
+}
+
 // All brands, last full days. Today is partial, so it's shown apart.
 function drawSummary(data) {
   const box = $('ownerSummary'); if (!box) return;
+  if (!S.sumMode) S.sumMode = istHour() < 12 ? 'y' : 't';
+  if (S.sumPlat !== 'all') return drawSummaryPlat();
   const today = data[0] ? data[0].today : istDate();
   const fullDays = Array.from(new Set([].concat(...data.map(b => b.days.map(d => d.date))))).filter(d => d < today).sort().reverse();
   // Yesterday (full day) or today so far. Default: yesterday before 12 PM IST, today after.
@@ -346,9 +370,7 @@ function drawSummary(data) {
   const liveDays = cur.filter(d => sumAll([d], 'placed') > 0).length;
   const wkTotal = dayList.reduce((a, d) => a + sumAll([d], 'placed'), 0);
   const lastCol = (b) => isMtd ? Math.round(agg(b, cur).placed / Math.max(1, agg(b, cur).days)) : dayList.reduce((a, d) => a + get(b, d).placed, 0);
-  box.innerHTML = '<div class="card"><div class="row" style="margin-bottom:10px"><h3 style="margin:0">All brands summary <span class="muted" style="font-weight:400">· only you can see this</span></h3>' +
-    '<span class="chips" style="margin:0 0 0 auto">' + [['m', 'MTD'], ['y', 'Yesterday'], ['t', 'Today so far']].map(m => '<span class="chip ' + (S.sumMode === m[0] ? 'on' : '') + '" data-act="summode" data-m="' + m[0] + '">' + m[1] + '</span>').join('') + '</span></div>' +
-    '<div class="chips" style="margin:0 0 12px">' + [['', 'All day'], ['breakfast', 'Breakfast'], ['lunch', 'Lunch'], ['snacks', 'Snacks'], ['dinner', 'Dinner'], ['late', 'Late night']].map(m => '<span class="chip ' + ((S.sumSlot || '') === m[0] ? 'on' : '') + '" data-act="sumslot" data-s="' + m[0] + '">' + m[1] + '</span>').join('') + '</div>' +
+  box.innerHTML = '<div class="card">' + sumHead() +
     '<div class="kpis">' +
       '<div class="kpi"><div class="v">' + fmt(total.placed) + '</div><div class="l">Calls made ' + label(y) + (isToday || !totPrev.placed ? '' : ' ' + delta(total.placed, totPrev.placed) + ' vs ' + (isMtd ? prevLabel : label(dby))) + '</div></div>' +
       '<div class="kpi"><div class="v">' + fmt(total.heard) + '</div><div class="l">Heard the full message (' + pct(total.heard, total.placed) + ')</div></div>' +
@@ -363,6 +385,55 @@ function drawSummary(data) {
       '<tr style="font-weight:600">' + row('All brands', total, totPrev, '', isMtd ? Math.round(total.placed / Math.max(1, liveDays)) : wkTotal).slice(4) +
     '</table></div>' +
     '<p class="muted">' + (isToday ? 'Today is still in progress, so its numbers keep growing until midnight.' : isMtd ? 'Month to date: full days from the 1st to yesterday, compared with the same days last month. Brands that went live this month have no comparison.' : 'Full days only (today is still in progress).') + ' Heard % = calls where the customer listened to the whole message. Call rate = orders we called ÷ Swiggy + Zomato orders (never above 100%). Cost = Plivo billing ($0.00475/min, 30 s blocks; unanswered calls are free) at ₹81/$; cost / call = cost ÷ calls in our log. Slots go by the time the call was made.</p></div>';
+}
+
+// Summary for one platform (Swiggy or Zomato), from apiAnalyticsAll. Same chips;
+// slot filter uses each brand's slot numbers.
+function drawSummaryPlat() {
+  const box = $('ownerSummary'); if (!box) return;
+  const period = { m: 'mtd', y: 'yesterday', t: 'today' }[S.sumMode] || 'yesterday', k = period + '|' + S.sumPlat;
+  const curK = () => ({ m: 'mtd', y: 'yesterday', t: 'today' }[S.sumMode] || 'yesterday') + '|' + S.sumPlat;
+  const d = S.anAll[k];
+  if (!d || Date.now() - d._at > 120e3) {
+    if (!d) box.innerHTML = '<div class="card">' + sumHead() + '<div class="loading">Loading ' + esc(S.sumPlat) + ' numbers for every brand…</div></div>';
+    if (!S.anAllP[k]) {
+      const ok = guard();
+      const p = S.anAllP[k] = call('apiAnalyticsAll', period, S.sumPlat);
+      p.then(x => { x._at = Date.now(); S.anAll[k] = x; if (ok() && curK() === k) drawSummaryPlat(); })
+        .catch(e => { if (ok() && curK() === k && !S.anAll[k] && !e.signedOut && $('ownerSummary')) showErr($('ownerSummary'), e, drawSummaryPlat); })
+        .then(() => { if (S.anAllP[k] === p) delete S.anAllP[k]; });
+    }
+    if (!d) return;
+  }
+  const slot = S.sumSlot || '';
+  const arr = a => a ? { orders: a[0], calls: a[1], heard: a[2], cost: a[3] } : null;
+  const val = b => slot ? arr(b.bySlot && b.bySlot[slot]) || { orders: 0, calls: 0, heard: 0, cost: 0 } : b.totals;
+  const cmpOf = b => slot ? arr(b.bySlotCmp && b.bySlotCmp[slot]) : b.cmp;
+  const rows = d.brands.filter(b => b.error || (b.totals && (b.totals.orders || (b.cmp && b.cmp.orders))));
+  const add = (x, y) => { ['orders', 'calls', 'heard', 'noNumber', 'cost'].forEach(f => { x[f] = (x[f] || 0) + ((y && y[f]) || 0); }); return x; };
+  const ok = rows.filter(b => !b.error), total = ok.reduce((t, b) => add(t, val(b)), {});
+  const cmpAll = ok.every(b => cmpOf(b)) ? ok.reduce((t, b) => add(t, cmpOf(b)), {}) : null;
+  const rs = n => '₹' + fmtN(n);
+  const perCall = v => v.calls ? '₹' + (v.cost / v.calls).toFixed(2) : '–';
+  const nn = v => slot ? '–' : pct(v.noNumber, v.orders);
+  const row = (name, v, c) => '<tr><td>' + name + '</td><td class="n">' + fmtN(v.orders) + '</td><td class="n">' + fmtN(v.calls) + ' ' + (c ? chg(v.calls, c.calls) : '') + '</td><td class="n">' + pct(v.calls, v.orders) +
+    '</td><td class="n">' + fmtN(v.heard) + '</td><td class="n">' + pct(v.heard, v.calls) + '</td><td class="n">' + nn(v) + '</td><td class="n">' + rs(v.cost) + '</td><td class="n">' + perCall(v) + '</td></tr>';
+  const kpi = (v, l) => '<div class="kpi"><div class="v">' + v + '</div><div class="l">' + l + '</div></div>';
+  box.innerHTML = '<div class="card">' + sumHead() +
+    '<div class="kpis">' +
+      kpi(fmtN(total.calls), esc(S.sumPlat) + ' calls · ' + esc(d.label) + (cmpAll ? ' ' + chg(total.calls, cmpAll.calls) + ' vs ' + esc(d.cmpLabel) : '')) +
+      kpi(fmtN(total.heard), 'Heard the full message (' + pct(total.heard, total.calls) + ')') +
+      kpi(pct(total.calls, total.orders), 'Call rate: orders called ÷ ' + fmtN(total.orders) + ' ' + esc(S.sumPlat) + ' orders') +
+      (slot ? '' : kpi(pct(total.noNumber, total.orders), 'No customer number (' + fmtN(total.noNumber) + ' orders)')) +
+      kpi(rs(total.cost), 'Plivo cost · ' + perCall(total) + ' per call') +
+    '</div>' +
+    '<div style="overflow:auto"><table><tr><th>Brand</th><th class="n">Orders</th><th class="n">Calls</th><th class="n">Call rate</th><th class="n">Heard calls</th><th class="n">Heard %</th><th class="n">No number</th><th class="n">Cost</th><th class="n">Cost / call</th></tr>' +
+      rows.map(b => b.error ? '<tr><td>' + esc(b.name) + '</td><td colspan="8" class="err">Couldn\'t read its call log</td></tr>' : row(esc(b.name), val(b), cmpOf(b))).join('') +
+      '<tr style="font-weight:600">' + row('All brands', total, cmpAll).slice(4) +
+    '</table></div>' +
+    '<p class="muted">' + esc(S.sumPlat) + ' orders only, ' + esc(d.label) + (cmpAll ? '; ▲/▼ vs ' + esc(d.cmpLabel) : '') + '. Updated ' + esc(d.asOf || '') + '. ' +
+      (d.brands.some(b => b.missing) ? 'Some days are still being added up, so a few totals are short for now. ' : '') +
+      'No number = the platform did not share the customer\'s number' + (slot ? ' (all-day only)' : '') + '. Cost and slots as above.</p></div>';
 }
 
 // Uploaded clips live on Drive, which a browser signed in to Google can't stream;
@@ -393,55 +464,172 @@ async function renderOverview() {
   if (had) drawOverview(had);
   try {
     const o = await call('apiOverview', key);
-    // A go-live / number change landed after this request started: keep its readiness.
+    // A go-live / number / platform change landed after this request started: keep its readiness.
     if (t0 < (S.mut['ov_' + key] || 0) && S.ov[key]) o.ready = S.ov[key].ready;
     S.ov[key] = o; saveScreens_();
     if (ok()) drawOverview(o);
   } catch (e) { const box = $('tab'); if (ok() && box && !had && !e.signedOut) showErr(box, e, renderOverview); }
 }
+// Swiggy / Zomato calling switches (owner and the brand's managers).
+function platSwitches(r) {
+  const p = r.platforms || { Swiggy: true, Zomato: true };
+  return ['Swiggy', 'Zomato'].map(n => '<label class="plat-sw"><span class="toggle"><input type="checkbox" data-plat="' + n + '"' + (p[n] ? ' checked' : '') + '><span></span></span>' + n + ' calls</label>').join('');
+}
 function drawOverview(o) {
   const box = $('tab'); if (!box || S.tab !== 'overview' || !S.brand) return;
   const r = o.ready; S.ready = r;
-  const td = o.today || istDate();
-  const today = o.days[0] && o.days[0].date === td ? o.days[0] : { orders:0, placed:0, heard:0, notReached:0, waiting:0 };
-  const k = (v,l) => '<div class="kpi"><div class="v">' + v + '</div><div class="l">' + l + '</div></div>';
-  const trend = o.days.slice(0, 14).reverse();
-  const max = Math.max(1, ...trend.map(d => d.placed));
   const tick = ok => ok ? '<b style="color:var(--accent)">✓</b>' : '<b style="color:var(--bad)">✗</b>';
   const ready = r.plivoNumber && r.mainClip && r.storesOn;
   const statusCard = r.status === 'Live'
     ? '<div class="card row" style="border-color:var(--accent)"><span class="pill">● Live</span><span>Customers of ' + esc(S.brand.name) + ' are being called.</span>' +
-        (r.isOwner ? '<button class="btn" style="margin-left:auto" data-act="setlive" data-on="0">Pause calling</button>' : '') + '</div>'
+        '<span class="row" style="margin-left:auto;gap:14px">' + platSwitches(r) + (r.isOwner ? '<button class="btn" data-act="setlive" data-on="0">Pause calling</button>' : '') + '</span></div>'
     : '<div class="card" style="border-color:#f59e0b"><h3>' + esc(S.brand.name) + ' is paused: no customer calls yet</h3>' +
         '<div style="line-height:2">' +
         tick(r.plivoNumber) + ' Calling number: ' + (r.plivoNumber ? esc(r.plivoNumber) : 'not set') +
           (r.isOwner ? ' <input type="text" id="pNum" placeholder="Plivo number" value="' + esc(r.plivoNumber) + '" style="width:160px"> <button class="btn" data-act="plivo">Save</button>' : '') + '<br>' +
         tick(r.mainClip) + ' Main voice clip: ' + (r.mainClip ? esc(r.mainClip) : 'not uploaded. Add one in <a href="#" data-act="tab" data-tab="voice">Voice &amp; schedule</a>') + '<br>' +
         tick(r.storesOn) + ' Stores on: ' + r.storesOn + ' of ' + r.storesAll + '</div>' +
+        '<div class="row" style="margin-top:6px;gap:14px"><span class="muted">Once live, call customers from:</span>' + platSwitches(r) + '</div>' +
         (r.isOwner ? '<button class="btn primary" style="margin-top:10px" ' + (ready ? '' : 'disabled') + ' data-act="setlive" data-on="1">Go live</button>' : '') + '</div>';
   const pn = $('pNum'), typing = pn && document.activeElement === pn ? pn.value : null;
+  const q = $('anQ'), qFocus = q && document.activeElement === q;
   box.innerHTML = statusCard +
     '<div class="row muted" style="margin-bottom:10px">Live now: <b style="color:var(--ink)">' + esc(o.live.day + ' ' + o.live.slot + ' · ' + o.live.label) + '</b>' +
       (o.lastCheck ? '&nbsp;·&nbsp; last order check ' + esc(o.lastCheck) : '') + '</div>' +
-    '<div class="kpis">' +
-      k(today.placed.toLocaleString('en-IN'), 'Calls made today') +
-      k(pct(today.logged == null ? today.placed : today.logged, today.orders), 'Call rate (orders called ÷ orders)') +
-      k(pct(today.heard, today.placed), 'Heard the message') +
-      k(today.notReached.toLocaleString('en-IN'), 'Not reached (no answer / rejected / busy)') +
-      k(today.orders.toLocaleString('en-IN'), 'Swiggy + Zomato orders seen') +
-    '</div>' +
-    '<div class="card"><h3>Last 14 days</h3>' +
-      (trend.length ? '<div class="bars">' + trend.map(d => {
-        const h = Math.round(100 * d.placed / max), hh = d.placed ? Math.round(100 * d.heard / d.placed) : 0;
-        return '<div class="bar" title="' + esc(d.date + ': ' + d.placed + ' calls, ' + d.heard + ' heard' + (d.plivo != null ? ', Plivo ' + d.plivo : '')) + '">' +
-          '<div class="val">' + d.placed + '</div><div class="b" style="height:' + h + '%"><div class="h" style="height:' + hh + '%"></div></div>' + esc(d.date.slice(8) + '/' + d.date.slice(5,7)) + '</div>';
-      }).join('') + '</div><div class="legend"><span><i style="background:#0b4f49"></i>Heard message</span><span><i style="background:var(--accent)"></i>Calls made</span></div>' : '<div class="muted">No calls yet.</div>') +
-    '</div>' +
-    '<div class="two">' +
-      '<div class="card"><h3>Today by city</h3>' + tbl(['City','Orders','Calls','Heard %'], o.cities.map(c => [esc(c.city), c.orders, c.placed, pct(c.heard, c.placed)])) + '</div>' +
-      '<div class="card"><h3>Today by store</h3><div style="max-height:420px;overflow:auto">' + tbl(['Store','City','Calls','Heard %'], o.stores.map(s => [esc(s.store), esc(s.city), s.placed, pct(s.heard, s.placed)])) + '</div></div>' +
-    '</div>';
+    '<div id="anf">' + anFilters() + '</div><div id="an"></div>';
   if (typing != null && $('pNum')) { $('pNum').value = typing; $('pNum').focus(); }
+  loadAn();
+  if (qFocus && $('anQ')) $('anQ').focus();
+}
+
+// ---------- overview analytics (apiAnalytics) ----------
+const AN_PERIODS = [['today', 'Today'], ['yesterday', 'Yesterday'], ['7d', 'Last 7 days'], ['mtd', 'MTD'], ['lastmonth', 'Last month']];
+const AN_PLATS = [['all', 'All'], ['Swiggy', 'Swiggy'], ['Zomato', 'Zomato']];
+const anKey = () => S.brand.key + '|' + S.anPeriod + '|' + S.anPlat;
+const rt = (a, b) => b ? 100 * a / b : null;
+const fmtN = n => Math.round(n || 0).toLocaleString('en-IN');
+const pc = v => v == null ? '–' : Math.round(v) + '%';
+// ▲/▼ vs the comparison. pts: difference in percentage points; down: lower is better; flat: no colour.
+function chg(a, b, o) {
+  o = o || {};
+  if (a == null || b == null || (!o.pts && !b)) return '';
+  const d = o.pts ? Math.round(a - b) : Math.round(100 * (a - b) / b);
+  if (!d) return '<span class="muted">no change</span>';
+  const good = o.down ? d < 0 : d > 0;
+  return '<span style="color:' + (o.flat ? 'var(--muted)' : good ? 'var(--accent)' : 'var(--bad)') + '">' + (d > 0 ? '▲' : '▼') + ' ' + Math.abs(d) + (o.pts ? ' pts' : '%') + '</span>';
+}
+// Table with every column but the first right-aligned, scrolling sideways on phones.
+function ntbl(head, rows) {
+  return '<div style="overflow:auto"><table><tr>' + head.map((h, i) => '<th' + (i ? ' class="n"' : '') + '>' + h + '</th>').join('') + '</tr>' +
+    rows.map(r => '<tr>' + r.map((v, i) => '<td' + (i ? ' class="n"' : '') + '>' + v + '</td>').join('') + '</tr>').join('') + '</table></div>';
+}
+function anFilters() {
+  const c = (act, cur, list) => list.map(x => '<span class="chip ' + (cur === x[0] ? 'on' : '') + '" data-act="' + act + '" data-v="' + x[0] + '">' + x[1] + '</span>').join('');
+  return '<div class="row" style="margin-bottom:12px"><span class="chips" style="margin:0">' + c('anper', S.anPeriod, AN_PERIODS) + '</span>' +
+    '<span class="chips" style="margin:0 0 0 auto">' + c('anplat', S.anPlat, AN_PLATS) + '</span></div>';
+}
+function setAnFilter(f, v) {
+  S[f] = v; S.stView = 'all';
+  const el = $('anf'); if (el) el.innerHTML = anFilters();
+  loadAn();
+}
+// Draws the kept copy at once; asks the server when there is none or it is over 2 minutes old.
+function loadAn() {
+  if (!S.brand) return;
+  const k = anKey(), ok = guard(), box = $('an'), had = S.an[k];
+  if (box) { if (had) drawAn(had); else box.innerHTML = '<div class="loading">Loading numbers…</div>'; }
+  if (S.anP[k] || (had && Date.now() - had._at < 120e3)) return;
+  const [key, period, plat] = k.split('|');
+  const p = S.anP[k] = call('apiAnalytics', key, period, plat);
+  p.then(a => { a._at = Date.now(); S.an[k] = a; if (ok() && anKey() === k) drawAn(a); })
+    .catch(e => { const b = $('an'); if (ok() && anKey() === k && b && !S.an[k] && !e.signedOut) showErr(b, e, loadAn); })
+    .then(() => { if (S.anP[k] === p) delete S.anP[k]; });
+}
+function drawAn(a) {
+  const box = $('an'); if (!box || S.tab !== 'overview') return;
+  const t = a.totals, c = a.cmp;
+  const k = (v, l, d) => '<div class="kpi"><div class="v">' + v + '</div><div class="l">' + l + '</div>' + (d ? '<div class="d">' + d + '</div>' : '') + '</div>';
+  const who = a.platform === 'all' ? 'Swiggy + Zomato' : a.platform;
+  const insights = '<div class="card"><h3>Insights</h3><ul class="insights">' + a.insights.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></div>';
+  const kpis = '<div class="muted" style="margin:-4px 0 10px">' + esc(a.label) + (c ? ' · ▲/▼ compared with ' + esc(a.cmpLabel) : '') + (a.asOf ? ' · updated ' + esc(a.asOf) : '') + '</div>' +
+    '<div class="kpis">' +
+      k(fmtN(t.orders), who + ' orders', c && chg(t.orders, c.orders)) +
+      k(fmtN(t.calls), 'Calls made', c && chg(t.calls, c.calls)) +
+      k(pct(t.calls, t.orders), 'Call rate (orders called ÷ orders)', c && chg(rt(t.calls, t.orders), rt(c.calls, c.orders), { pts: true })) +
+      k(pct(t.heard, t.calls), 'Heard the message (' + fmtN(t.heard) + ')', c && chg(rt(t.heard, t.calls), rt(c.heard, c.calls), { pts: true })) +
+      k(pct(t.noNumber, t.orders), 'No customer number (' + fmtN(t.noNumber) + ')', c && chg(rt(t.noNumber, t.orders), rt(c.noNumber, c.orders), { pts: true, down: true })) +
+      k('₹' + fmtN(t.cost), 'Plivo cost' + (t.calls ? ' · ₹' + (t.cost / t.calls).toFixed(2) + ' per call' : ''), c && chg(t.cost, c.cost, { flat: true })) +
+    '</div>';
+  const days = a.byDay, mx = Math.max(1, ...days.map(d => d.calls || 0)), step = Math.ceil(days.length / 16), few = days.length <= 16;
+  const trend = '<div class="card"><h3>' + (a.period === 'today' ? 'Last 14 days' : 'Day by day') + '</h3>' +
+    (days.some(d => d.calls) ? '<div class="bars">' + days.map((d, i) => {
+      const v = d.calls || 0, h = Math.round(100 * v / mx), hh = v ? Math.round(100 * d.heard / v) : 0;
+      return '<div class="bar" title="' + esc(d.d + (d.none ? ': not added up yet' : ': ' + d.orders + ' orders, ' + v + ' calls, ' + d.heard + ' heard')) + '">' +
+        (few ? '<div class="val">' + (d.none ? '…' : v) + '</div>' : '') + '<div class="b" style="height:' + h + '%"><div class="h" style="height:' + hh + '%"></div></div>' +
+        (i % step === 0 ? esc(d.d.slice(8) + '/' + d.d.slice(5, 7)) : '&nbsp;') + '</div>';
+    }).join('') + '</div><div class="legend"><span><i style="background:#0b4f49"></i>Heard message</span><span><i style="background:var(--accent)"></i>Calls made</span></div>'
+      : '<div class="muted">No calls in these days.</div>') + '</div>';
+  const wk = (s, f) => s.tw[f] == null ? '–' : pc(s.tw[f]) + ' ' + (s.lw[f] == null ? '' : chg(s.tw[f], s.lw[f], { pts: true }) + ' <span class="muted">(' + pc(s.lw[f]) + ')</span>');
+  const slots = '<div class="card"><h3>By time slot</h3>' +
+    ntbl(['Slot', 'Orders', 'Calls', 'Call rate', 'Heard %', 'Call rate this wk (last wk)', 'Heard % this wk (last wk)'],
+      a.bySlot.map((s, i) => [esc(s.label), fmtN(s.orders), fmtN(s.calls), pc(s.callRate), pc(s.heardPct), wk(a.slotWeeks[i], 'callRate'), wk(a.slotWeeks[i], 'heardPct')])) +
+    '<p class="muted">This week = Monday to now, last week = Monday to Sunday, whatever period is picked above.</p></div>';
+  const plats = '<div class="card"><h3>Swiggy vs Zomato</h3>' +
+    ntbl(['Platform', 'Orders', 'Calls', 'Call rate', 'Heard %', 'No number %'],
+      a.byPlatform.map(p => [esc(p.platform), fmtN(p.orders), fmtN(p.calls), pc(p.callRate), pc(p.heardPct), pc(p.noNumberPct)])) +
+    '<p class="muted">Both platforms in this period, whichever platform is picked above.</p></div>';
+  const stores = '<div class="card"><div class="row" style="margin-bottom:8px"><h3 style="margin:0">Stores <span class="muted" style="font-weight:400">' + a.stores.length + ' with orders</span></h3>' +
+    '<input type="search" id="anQ" placeholder="Search store" value="' + esc(S.stQ) + '" style="margin-left:auto">' +
+    '<span class="chips" style="margin:0">' + [['all', 'All'], ['bottom', 'Bottom 10'], ['top', 'Top 10']].map(x => '<span class="chip ' + (S.stView === x[0] ? 'on' : '') + '" data-act="stview" data-v="' + x[0] + '">' + x[1] + '</span>').join('') + '</span></div>' +
+    '<div id="anSt" style="max-height:520px;overflow:auto"></div>' +
+    '<p class="muted">Click a column to sort. Top / bottom 10 go by the sorted column, among stores with 10+ orders. Red: call rate under 60%. Amber: heard under 50%.</p></div>';
+  box.innerHTML = insights + kpis + trend + slots + plats + stores +
+    '<p class="muted">Call rate = orders called ÷ ' + esc(who) + ' orders. Heard % = calls where the customer listened to the whole message. No number = the platform did not share the customer\'s number (or it was still awaited). Cost = Plivo billing in 30 s blocks at ₹81/$; unanswered calls are free. Slots go by the time the order reached the log.' +
+    (a.missing ? ' ' + a.missing + (a.missing > 1 ? ' days' : ' day') + ' of this period are still being added up, so totals are short for now.' : '') + '</p>';
+  drawStoreTable();
+}
+const ST_COLS = [['store', 'Store'], ['orders', 'Orders'], ['calls', 'Calls'], ['callRate', 'Call rate'], ['heard', 'Heard'], ['heardPct', 'Heard %'], ['noNumber', 'No number']];
+// Only the table redraws, so the search box keeps focus.
+function drawStoreTable() {
+  const el = $('anSt'), a = S.brand && S.an[anKey()]; if (!el || !a) return;
+  const s = S.stSort, dir = s.asc ? 1 : -1, v = x => x[s.k] == null ? -1 : x[s.k];
+  const by = (x, y) => (s.k === 'store' ? x.store.localeCompare(y.store) : v(x) - v(y)) * dir || y.orders - x.orders;
+  let list = a.stores.filter(x => !S.stQ || x.store.toLowerCase().includes(S.stQ));
+  if (S.stView !== 'all') {
+    const f = s.k === 'store' ? 'callRate' : s.k, val = x => x[f] == null ? -1 : x[f];
+    list = list.filter(x => x.orders >= 10).sort((x, y) => (S.stView === 'top' ? val(y) - val(x) : val(x) - val(y)) || y.orders - x.orders).slice(0, 10);
+  }
+  list = list.slice().sort(by);
+  const cell = (x, f) => {
+    const flag = f === 'callRate' && x.orders >= 5 && x.callRate < 60 ? ' flag-bad' : f === 'heardPct' && x.calls >= 5 && x.heardPct < 50 ? ' flag-warn' : '';
+    return '<td class="n' + flag + '">' + (f === 'callRate' || f === 'heardPct' ? pc(x[f]) : fmtN(x[f])) + '</td>';
+  };
+  el.innerHTML = '<table><tr>' + ST_COLS.map((c, i) => '<th class="sort' + (i ? ' n' : '') + '" data-act="stsort" data-k="' + c[0] + '">' + c[1] + (s.k === c[0] ? (s.asc ? ' ▲' : ' ▼') : '') + '</th>').join('') + '</tr>' +
+    list.map(x => '<tr><td>' + esc(x.store) + '</td>' + ST_COLS.slice(1).map(c => cell(x, c[0])).join('') + '</tr>').join('') + '</table>' +
+    (list.length ? '' : '<div class="muted" style="padding:8px">No stores ' + (S.stQ ? 'match.' : S.stView !== 'all' ? 'with 10+ orders.' : 'with orders.') + '</div>');
+}
+// Same column again flips it; a new column starts worst first (rates) or biggest first (counts).
+function sortStores(k) {
+  const s = S.stSort;
+  S.stSort = s.k === k ? { k: k, asc: !s.asc } : { k: k, asc: k === 'store' || k === 'callRate' || k === 'heardPct' };
+  drawStoreTable();
+}
+async function setPlat(el) {
+  if (!S.brand) return;
+  const key = S.brand.key, name = el.dataset.plat, on = el.checked;
+  const want = Object.assign({ Swiggy: true, Zomato: true }, S.ready && S.ready.platforms);
+  want[name] = on;
+  if (!on && !confirm('Stop calling ' + S.brand.name + ' customers who order on ' + name + '?')) { el.checked = true; return; }
+  const boxes = document.querySelectorAll('input[data-plat]');
+  boxes.forEach(i => { i.disabled = true; });
+  try {
+    const r = await call('apiSetPlatforms', key, want.Swiggy, want.Zomato);
+    applyReady(key, r);
+    toast(name + ' calls ' + (on ? 'on' : 'off') + '. Takes effect within 5 minutes.');
+  } catch (e) {
+    if (el.isConnected) el.checked = !on;
+    if (!e.signedOut) toast(e.message, true);
+  } finally { boxes.forEach(i => { if (i.isConnected) i.disabled = false; }); }
 }
 function tbl(head, rows) {
   if (!rows.length) return '<div class="muted">Nothing yet today.</div>';
@@ -453,7 +641,7 @@ function tbl(head, rows) {
 function applyReady(key, r) {
   S.mut['ov_' + key] = Date.now();
   const b = S.home && S.home.brands.find(x => x.key === key);
-  if (b) { b.status = r.status; b.plivoNumber = r.plivoNumber; }
+  if (b) { b.status = r.status; b.plivoNumber = r.plivoNumber; if (r.platforms) b.platforms = r.platforms; }
   if (S.ov[key]) { S.ov[key].ready = r; if (S.brand && S.brand.key === key) drawOverview(S.ov[key]); }
 }
 function savePlivo(btn) {
@@ -794,6 +982,9 @@ const ACT = {
   brand: el => openBrand(el.dataset.key), tab: el => showTab(el.dataset.tab),
   summode: el => { S.sumMode = el.dataset.m; if (S.summary) drawSummary(S.summary); },
   sumslot: el => { S.sumSlot = el.dataset.s; if (S.summary) drawSummary(S.summary); },
+  sumplat: el => { S.sumPlat = el.dataset.p; if (S.summary) drawSummary(S.summary); },
+  anper: el => setAnFilter('anPeriod', el.dataset.v), anplat: el => setAnFilter('anPlat', el.dataset.v),
+  stsort: el => sortStores(el.dataset.k), stview: el => { S.stView = el.dataset.v; el.parentNode.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === el)); drawStoreTable(); },
   setlive: el => setLive(el, el.dataset.on === '1'), plivo: el => savePlivo(el),
   shown: el => setShown(el.dataset.on === '1'), savestores: el => saveStores(el),
   sub: el => { S.subFilter = el.dataset.sub; drawStores(); }, city: el => { S.cityFilter = el.dataset.city; drawStores(); },
@@ -811,10 +1002,14 @@ document.addEventListener('click', e => {
 document.addEventListener('change', e => {
   const t = e.target;
   if (t.dataset.store != null) flip(t.dataset.store, t.checked);
+  else if (t.dataset.plat) setPlat(t);
   else if (t.dataset.chg === 'dates') clipDates(t);
   else if (t.id === 'file') prepClip();
 });
-document.addEventListener('input', e => { if (e.target.id === 'storeQ') filterStores(e.target.value); });
+document.addEventListener('input', e => {
+  if (e.target.id === 'storeQ') filterStores(e.target.value);
+  else if (e.target.id === 'anQ') { S.stQ = e.target.value.trim().toLowerCase(); drawStoreTable(); }
+});
 window.addEventListener('beforeunload', e => { if (dirty()) { e.preventDefault(); e.returnValue = ''; } });
 window.addEventListener('hashchange', route);
 
