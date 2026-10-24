@@ -53,7 +53,7 @@
   .chips { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0; }
   .chip { border:1px solid var(--line); border-radius:20px; padding:4px 11px; cursor:pointer; font-size:12px; background:var(--card); }
   .chip.on { background:var(--ink); color:#fff; border-color:var(--ink); }
-  .store { display:flex; align-items:center; justify-content:space-between; padding:8px 4px; border-bottom:1px solid var(--line); }
+  .store { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 4px; border-bottom:1px solid var(--line); }
   .store .city { color:var(--muted); font-size:12px; margin-left:6px; }
   .toggle { position:relative; width:38px; height:22px; flex:none; }
   .toggle input { display:none; }
@@ -61,6 +61,9 @@
   .toggle span:before { content:""; position:absolute; width:16px; height:16px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.15s; }
   .toggle input:checked + span { background:var(--accent); }
   .toggle input:checked + span:before { transform:translateX(16px); }
+  .chs { display:flex; gap:4px; flex:none; }
+  .ch { border:1px solid var(--line); border-radius:14px; padding:3px 9px; font-size:12px; cursor:pointer; color:var(--muted); background:var(--card); user-select:none; }
+  .ch.on { background:var(--accent); border-color:var(--accent); color:#fff; }
   .stores { max-height:520px; overflow:auto; display:grid; grid-template-columns:1fr 1fr; column-gap:24px; align-content:start; }
   @media (max-width:800px){ .stores { grid-template-columns:1fr; } }
   .grid { border-collapse:separate; border-spacing:4px; user-select:none; }
@@ -661,10 +664,15 @@ function setLive(btn, on) {
 // UrbanPiper lists some stores twice: count each store (by its code/name) once.
 const skey = s => String(s.name).split('/').pop().trim().toLowerCase();
 const uniq = arr => new Set(arr.map(skey)).size;
-const isOn = id => (id in S.storeChanges) ? S.storeChanges[id] : S.storeById[id].active;
+// Per-store channels: S.storeChanges[id] = the store's full {swiggy, zomato, toing} when it differs from saved.
+const CHS = [['swiggy', 'Swiggy'], ['zomato', 'Zomato'], ['toing', 'Toing']];
+const chOf = id => S.storeChanges[id] || S.storeById[id].ch;
+const isOn = id => CHS.some(c => chOf(id)[c[0]]);
+const sameCh = (a, b) => CHS.every(c => !!a[c[0]] === !!b[c[0]]);
+function setCh(id, ch) { const s = S.storeById[id]; if (!s) return; if (sameCh(ch, s.ch)) delete S.storeChanges[id]; else S.storeChanges[id] = ch; }
 const matchQ = s => !S.q || (s.name + ' ' + s.city).toLowerCase().includes(S.q);
 const inFilter = s => (S.subFilter === 'All' || s.sub === S.subFilter) && (S.cityFilter === 'All' || s.city === S.cityFilter);
-function setStores(list) { S.stores = list; S.storeById = {}; list.forEach(s => { S.storeById[s.id] = s; }); }
+function setStores(list) { S.stores = list; S.storeById = {}; list.forEach(s => { if (!s.ch) s.ch = { swiggy: s.active, zomato: s.active, toing: s.active }; S.storeById[s.id] = s; }); }
 function renderStores() {
   return load('tab', async ok => {
     if (!S.stores) {
@@ -686,7 +694,9 @@ function drawStores(keepScroll) {
   const pending = Object.keys(S.storeChanges).length;
   box.innerHTML = '<div class="card">' +
     '<div class="row"><b>' + onCount + ' of ' + uniq(S.stores) + ' stores calling customers</b>' +
+      '<span class="muted">' + CHS.map(c => c[1] + ' ' + uniq(S.stores.filter(s => chOf(s.id)[c[0]]))).join(' · ') + '</span>' +
       '<input type="search" id="storeQ" placeholder="Search store" value="' + esc(S.q) + '" style="margin-left:auto">' +
+      '<select id="bulkCh"><option value="">All channels</option>' + CHS.map(c => '<option value="' + c[0] + '"' + (S.bulkCh === c[0] ? ' selected' : '') + '>' + c[1] + ' only</option>').join('') + '</select>' +
       '<button class="btn" data-act="shown" data-on="1">Turn on shown</button><button class="btn" data-act="shown" data-on="0">Turn off shown</button>' +
       '<button class="btn primary" ' + (pending ? '' : 'disabled') + ' data-act="savestores">Save' + (pending ? ' (' + pending + ')' : '') + '</button></div>' +
     (subs.length > 1 ? '<div class="chips"><span class="muted" style="align-self:center">Sub-brand</span>' + ['All'].concat(subs).map(b => '<span class="chip ' + (b === S.subFilter ? 'on' : '') + '" data-act="sub" data-sub="' + esc(b) + '">' + esc(b) +
@@ -694,7 +704,7 @@ function drawStores(keepScroll) {
     '<div class="chips">' + (subs.length > 1 ? '<span class="muted" style="align-self:center">City</span>' : '') + cities.map(c => '<span class="chip ' + (c === S.cityFilter ? 'on' : '') + '" data-act="city" data-city="' + esc(c) + '">' + esc(c) +
       (c === 'All' ? '' : ' ' + uniq(S.stores.filter(s => s.city === c && isOn(s.id))) + '/' + uniq(S.stores.filter(s => s.city === c))) + '</span>').join('') + '</div>' +
     '<div class="stores">' + shown.map(s => '<div class="store" data-id="' + esc(s.id) + '"' + (matchQ(s) ? '' : ' style="display:none"') + '><div>' + esc(s.name) + '<span class="city">' + esc(s.city) + (subs.length > 1 ? ' · ' + esc(s.sub) : '') + '</span></div>' +
-      '<label class="toggle"><input type="checkbox" data-store="' + esc(s.id) + '" ' + (isOn(s.id) ? 'checked' : '') + '><span></span></label></div>').join('') + '</div>' +
+      '<div class="chs">' + CHS.map(c => '<span class="ch' + (chOf(s.id)[c[0]] ? ' on' : '') + '" data-act="stch" data-id="' + esc(s.id) + '" data-ch="' + c[0] + '">' + c[1] + '</span>').join('') + '</div></div>').join('') + '</div>' +
     '<p class="muted">Changes go live on the next order check (within about 5 minutes).</p></div>';
   if (top) box.querySelector('.stores').scrollTop = top;
 }
@@ -703,24 +713,30 @@ function filterStores(q) {
   S.q = q.toLowerCase();
   document.querySelectorAll('#tab .store').forEach(el => { const s = S.storeById[el.dataset.id]; el.style.display = s && matchQ(s) ? '' : 'none'; });
 }
-function flip(id, on) {
+function flipCh(id, c) {
   if (!S.storeById[id]) return;
-  if (on === S.storeById[id].active) delete S.storeChanges[id]; else S.storeChanges[id] = on;
-  drawStores(true);
+  const ch = Object.assign({}, chOf(id)); ch[c] = !ch[c];
+  setCh(id, ch); drawStores(true);
 }
+// Shown = current city / sub-brand filter and search; the select limits it to one channel.
 function setShown(on) {
-  S.stores.filter(s => inFilter(s) && matchQ(s)).forEach(s => { if (on === s.active) delete S.storeChanges[s.id]; else S.storeChanges[s.id] = on; });
+  const only = S.bulkCh || '';
+  S.stores.filter(s => inFilter(s) && matchQ(s)).forEach(s => {
+    const ch = Object.assign({}, chOf(s.id));
+    CHS.forEach(c => { if (!only || only === c[0]) ch[c[0]] = on; });
+    setCh(s.id, ch);
+  });
   drawStores(true);
 }
 function saveStores(btn) {
   const key = S.brand.key, sent = Object.assign({}, S.storeChanges);
-  const changes = Object.keys(sent).map(id => ({ id: id, active: sent[id] }));
+  const changes = Object.keys(sent).map(id => ({ id: id, ch: sent[id] }));
   return busy(btn, 'Saving…', async () => {
     const list = await call('apiSaveStores', key, changes);
     if (!S.brand || S.brand.key !== key) return;
     S.mut.stores = Date.now(); setStores(list);
     // Keep only toggles made while this save was in flight.
-    Object.keys(S.storeChanges).forEach(id => { const s = S.storeById[id]; if (!s || S.storeChanges[id] === sent[id] || s.active === S.storeChanges[id]) delete S.storeChanges[id]; });
+    Object.keys(S.storeChanges).forEach(id => { const s = S.storeById[id]; if (!s || S.storeChanges[id] === sent[id] || sameCh(s.ch, S.storeChanges[id])) delete S.storeChanges[id]; });
     toast('Saved. Live within 5 minutes.'); drawStores(true);
   });
 }
@@ -986,7 +1002,7 @@ const ACT = {
   anper: el => setAnFilter('anPeriod', el.dataset.v), anplat: el => setAnFilter('anPlat', el.dataset.v),
   stsort: el => sortStores(el.dataset.k), stview: el => { S.stView = el.dataset.v; el.parentNode.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === el)); drawStoreTable(); },
   setlive: el => setLive(el, el.dataset.on === '1'), plivo: el => savePlivo(el),
-  shown: el => setShown(el.dataset.on === '1'), savestores: el => saveStores(el),
+  shown: el => setShown(el.dataset.on === '1'), savestores: el => saveStores(el), stch: el => flipCh(el.dataset.id, el.dataset.ch),
   sub: el => { S.subFilter = el.dataset.sub; drawStores(); }, city: el => { S.cityFilter = el.dataset.city; drawStores(); },
   brush: el => pickBrush(el), makedefault: el => makeDefault(el), removeclip: el => removeClip(el),
   showdates: el => { S.showDates = el.dataset.id; drawVoice(); },
@@ -1001,7 +1017,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('change', e => {
   const t = e.target;
-  if (t.dataset.store != null) flip(t.dataset.store, t.checked);
+  if (t.id === 'bulkCh') S.bulkCh = t.value;
   else if (t.dataset.plat) setPlat(t);
   else if (t.dataset.chg === 'dates') clipDates(t);
   else if (t.id === 'file') prepClip();
