@@ -329,11 +329,11 @@ function drawSummaryPlat() {
     if (!d) return;
   }
   const slot = S.sumSlot || '', allPl = S.sumPlat === 'all';
-  const arr = a => a ? { orders: a[0], calls: a[1], heard: a[2], cost: a[3], rang: a[4] || 0, picked: a[5] || 0, usd: a[6] || 0 } : null;
-  const val = b => slot ? arr(b.bySlot && b.bySlot[slot]) || { orders: 0, calls: 0, heard: 0, cost: 0, rang: 0, picked: 0, usd: 0 } : b.totals;
+  const arr = a => a ? { orders: a[0], calls: a[1], heard: a[2], cost: a[3], rang: a[4] || 0, picked: a[5] || 0, usd: a[6] || 0, visible: a[7] || 0, relay: a[8] || 0 } : null;
+  const val = b => slot ? arr(b.bySlot && b.bySlot[slot]) || { orders: 0, calls: 0, heard: 0, cost: 0, rang: 0, picked: 0, usd: 0, visible: 0, relay: 0 } : b.totals;
   const cmpOf = b => slot ? arr(b.bySlotCmp && b.bySlotCmp[slot]) : b.cmp;
   const rows = d.brands.filter(b => b.error || (b.totals && (b.totals.orders || (b.cmp && b.cmp.orders))));
-  const add = (x, y) => { ['orders', 'calls', 'heard', 'rang', 'picked', 'noNumber', 'cost', 'usd'].forEach(f => { x[f] = (x[f] || 0) + ((y && y[f]) || 0); }); return x; };
+  const add = (x, y) => { ['orders', 'calls', 'heard', 'rang', 'picked', 'visible', 'relay', 'noNumber', 'cost', 'usd'].forEach(f => { x[f] = (x[f] || 0) + ((y && y[f]) || 0); }); return x; };
   const ok = rows.filter(b => !b.error), total = ok.reduce((t, b) => add(t, val(b)), {});
   const cmpAll = ok.every(b => cmpOf(b)) ? ok.reduce((t, b) => add(t, cmpOf(b)), {}) : null;
   // All platforms, all day: the account total from Plivo (matches the Plivo console).
@@ -344,7 +344,7 @@ function drawSummaryPlat() {
   const nn = v => slot ? '–' : pct(v.noNumber, v.orders);
   const mark = b => b.costPending ? ' <span class="muted" title="Plivo billing for ' + b.costPending + ' day(s) of this period is still being collected">…</span>' : '';
   const row = (name, v, c, mk) => '<tr><td>' + name + '</td><td class="n">' + fmtN(v.orders) + '</td><td class="n">' + fmtN(v.calls) + ' ' + (c ? chg(v.calls, c.calls) : '') + '</td><td class="n">' + pct(v.calls, v.orders) +
-    '</td><td class="n">' + pct(v.rang, v.calls) + '</td><td class="n">' + pct(v.picked, v.calls) + '</td><td class="n">' + pct(v.heard, v.calls) + '</td><td class="n">' + nn(v) +
+    '</td><td class="n">' + fmtN(v.relay) + '</td><td class="n">' + pct(v.rang, v.visible) + '</td><td class="n">' + pct(v.picked, v.visible) + '</td><td class="n">' + pct(v.heard, v.visible) + '</td><td class="n">' + nn(v) +
     '</td><td class="n">' + money(v.usd, v.cost) + (mk || '') + '</td><td class="n">' + perCall(v) + '</td></tr>';
   const kpi = (v, l) => '<div class="kpi"><div class="v">' + v + '</div><div class="l">' + l + '</div></div>';
   const who = allPl ? 'Swiggy + Zomato' : esc(S.sumPlat);
@@ -352,20 +352,21 @@ function drawSummaryPlat() {
   box.innerHTML = '<div class="card">' + sumHead() +
     '<div class="kpis">' +
       kpi(fmtN(total.calls), 'Calls made · ' + esc(d.label) + (cmpAll ? ' ' + chg(total.calls, cmpAll.calls) + ' vs ' + esc(d.cmpLabel) : '')) +
-      kpi(pct(total.rang, total.calls), 'Ring %: rang the customer (' + fmtN(total.rang) + ')') +
-      kpi(pct(total.picked, total.calls), 'Call %: customer picked up (' + fmtN(total.picked) + ')') +
-      kpi(pct(total.heard, total.calls), 'Heard %: heard more than 10 s (' + fmtN(total.heard) + ')') +
+      kpi(pct(total.rang, total.visible), 'Ring %: rang the customer (' + fmtN(total.rang) + ' of ' + fmtN(total.visible) + ')') +
+      kpi(pct(total.picked, total.visible), 'Call %: customer picked up (' + fmtN(total.picked) + ')') +
+      kpi(pct(total.heard, total.visible), 'Heard %: heard more than 10 s (' + fmtN(total.heard) + ')') +
+      (S.sumPlat === 'Zomato' ? '' : kpi(fmtN(total.relay), 'Swiggy masked-line calls: pickup not visible')) +
       kpi(pct(total.calls, total.orders), 'Orders called: ' + fmtN(total.calls) + ' of ' + fmtN(total.orders) + ' ' + who + ' orders') +
       kpi('$' + (costTot.usd || 0).toFixed(2) + (pend ? ' <span class="muted" title="Plivo billing for part of this period is still being collected">…</span>' : ''),
         (acct ? 'Plivo cost, whole account' : 'Plivo cost') + ' · ₹' + fmtN(costTot.cost) + ' · ' + perCall(total) + ' per call') +
     '</div>' +
-    '<div style="overflow:auto"><table><tr><th>Brand</th><th class="n">Orders</th><th class="n">Calls made</th><th class="n">Orders called</th><th class="n">Ring %</th><th class="n">Call %</th><th class="n">Heard %</th><th class="n">No number</th><th class="n">Plivo cost</th><th class="n">Cost / call</th></tr>' +
-      rows.map(b => b.error ? '<tr><td>' + esc(b.name) + '</td><td colspan="9" class="err">Couldn\'t read its call log</td></tr>' : row(esc(b.name), val(b), cmpOf(b), mark(b))).join('') +
+    '<div style="overflow:auto"><table><tr><th>Brand</th><th class="n">Orders</th><th class="n">Calls made</th><th class="n">Orders called</th><th class="n">Masked-line calls</th><th class="n">Ring %</th><th class="n">Call %</th><th class="n">Heard %</th><th class="n">No number</th><th class="n">Plivo cost</th><th class="n">Cost / call</th></tr>' +
+      rows.map(b => b.error ? '<tr><td>' + esc(b.name) + '</td><td colspan="10" class="err">Couldn\'t read its call log</td></tr>' : row(esc(b.name), val(b), cmpOf(b), mark(b))).join('') +
       '<tr style="font-weight:600">' + row('All brands', total, cmpAll).slice(4) +
     '</table></div>' +
     '<p class="muted">' + who + ' orders, ' + esc(d.label) + (cmpAll ? '; ▲/▼ vs ' + esc(d.cmpLabel) : '') + '. Updated ' + esc(d.asOf || '') + '. ' +
       (d.brands.some(b => b.missing) ? 'Some days are still being added up, so a few totals are short for now. ' : '') +
-      'Ring % = calls that rang the customer\'s phone ÷ calls made. Call % = calls the customer picked up ÷ calls made. Heard % = calls the customer stayed on for more than 10 s ÷ calls made. ' +
+      'Ring % / Call % / Heard % = calls that rang the customer\'s phone / were picked up / lasted more than 10 s, ÷ calls to customers\' own numbers. Masked-line calls = Swiggy orders called through Swiggy\'s relay line with the order PIN: Swiggy\'s line answers every one, so the customer\'s pickup is not visible; they count in calls made and cost, not in the % columns. ' +
       'Orders called = calls made ÷ orders. Plivo cost = Plivo\'s own billing for every call made, at ₹81/$' + (acct ? '; the total is the whole Plivo account, so it matches the Plivo console (brand rows may add up to a little less)' : '') +
       (slot ? '; a slot\'s cost is shared out by its calls within each 2-hour billing window' : '') + '. … = Plivo billing still being collected. No number = the platform did not share the customer\'s number' + (slot ? ' (all-day only)' : '') + '.</p></div>';
 }
@@ -489,9 +490,10 @@ function drawAn(a) {
     '<div class="kpis">' +
       k(fmtN(t.orders), who + ' orders', c && chg(t.orders, c.orders)) +
       k(fmtN(t.calls), 'Calls made (' + pct(t.calls, t.orders) + ' of orders)', c && chg(t.calls, c.calls)) +
-      k(pct(t.rang, t.calls), 'Ring %: rang the customer (' + fmtN(t.rang) + ')', c && chg(rt(t.rang, t.calls), rt(c.rang, c.calls), { pts: true })) +
-      k(pct(t.picked, t.calls), 'Call %: customer picked up (' + fmtN(t.picked) + ')', c && chg(rt(t.picked, t.calls), rt(c.picked, c.calls), { pts: true })) +
-      k(pct(t.heard, t.calls), 'Heard %: more than 10 s (' + fmtN(t.heard) + ')', c && chg(rt(t.heard, t.calls), rt(c.heard, c.calls), { pts: true })) +
+      k(pct(t.rang, t.visible), 'Ring %: rang the customer (' + fmtN(t.rang) + ' of ' + fmtN(t.visible) + ')', c && chg(rt(t.rang, t.visible), rt(c.rang, c.visible), { pts: true })) +
+      k(pct(t.picked, t.visible), 'Call %: customer picked up (' + fmtN(t.picked) + ')', c && chg(rt(t.picked, t.visible), rt(c.picked, c.visible), { pts: true })) +
+      k(pct(t.heard, t.visible), 'Heard %: more than 10 s (' + fmtN(t.heard) + ')', c && chg(rt(t.heard, t.visible), rt(c.heard, c.visible), { pts: true })) +
+      (a.platform === 'Zomato' ? '' : k(fmtN(t.relay), 'Swiggy masked-line calls: pickup not visible', c && chg(t.relay, c.relay, { flat: true }))) +
       k(pct(t.noNumber, t.orders), 'No customer number (' + fmtN(t.noNumber) + ')', c && chg(rt(t.noNumber, t.orders), rt(c.noNumber, c.orders), { pts: true, down: true })) +
       k('$' + (t.usd || 0).toFixed(2) + (a.costPending ? ' <span class="muted" title="Plivo billing for ' + a.costPending + ' day(s) is still being collected">…</span>' : ''),
         'Plivo cost · ₹' + fmtN(t.cost) + (t.calls ? ' · ₹' + (t.cost / t.calls).toFixed(2) + ' per call' : ''), c && chg(t.cost, c.cost, { flat: true })) +
@@ -499,20 +501,20 @@ function drawAn(a) {
   const days = a.byDay, mx = Math.max(1, ...days.map(d => d.calls || 0)), step = Math.ceil(days.length / 16), few = days.length <= 16;
   const trend = '<div class="card"><h3>' + (a.period === 'today' ? 'Last 14 days' : 'Day by day') + '</h3>' +
     (days.some(d => d.calls) ? '<div class="bars">' + days.map((d, i) => {
-      const v = d.calls || 0, h = Math.round(100 * v / mx), hh = v ? Math.round(100 * d.heard / v) : 0;
-      return '<div class="bar" title="' + esc(d.d + (d.none ? ': not added up yet' : ': ' + d.orders + ' orders, ' + v + ' calls, ' + (d.rang || 0) + ' rang, ' + (d.picked || 0) + ' picked up, ' + d.heard + ' heard 10 s+')) + '">' +
+      const v = d.calls || 0, h = Math.round(100 * v / mx), hh = v ? Math.round(100 * d.heard / v) : 0; // heard bar = share of all calls made
+      return '<div class="bar" title="' + esc(d.d + (d.none ? ': not added up yet' : ': ' + d.orders + ' orders, ' + v + ' calls, ' + (d.relay || 0) + ' masked-line, ' + (d.rang || 0) + ' rang, ' + (d.picked || 0) + ' picked up, ' + d.heard + ' heard 10 s+')) + '">' +
         (few ? '<div class="val">' + (d.none ? '…' : v) + '</div>' : '') + '<div class="b" style="height:' + h + '%"><div class="h" style="height:' + hh + '%"></div></div>' +
         (i % step === 0 ? esc(d.d.slice(8) + '/' + d.d.slice(5, 7)) : '&nbsp;') + '</div>';
     }).join('') + '</div><div class="legend"><span><i style="background:#0b4f49"></i>Heard more than 10 s</span><span><i style="background:var(--accent)"></i>Calls made</span></div>'
       : '<div class="muted">No calls in these days.</div>') + '</div>';
   const wk = (s, f) => s.tw[f] == null ? '–' : pc(s.tw[f]) + ' ' + (s.lw[f] == null ? '' : chg(s.tw[f], s.lw[f], { pts: true }) + ' <span class="muted">(' + pc(s.lw[f]) + ')</span>');
   const slots = '<div class="card"><h3>By time slot</h3>' +
-    ntbl(['Slot', 'Orders', 'Calls made', 'Ring %', 'Call %', 'Heard %', 'Call % this wk (last wk)', 'Heard % this wk (last wk)'],
-      a.bySlot.map((s, i) => [esc(s.label), fmtN(s.orders), fmtN(s.calls), pc(s.ringPct), pc(s.pickPct), pc(s.heardPct), wk(a.slotWeeks[i], 'pickPct'), wk(a.slotWeeks[i], 'heardPct')])) +
+    ntbl(['Slot', 'Orders', 'Calls made', 'Masked-line', 'Ring %', 'Call %', 'Heard %', 'Call % this wk (last wk)', 'Heard % this wk (last wk)'],
+      a.bySlot.map((s, i) => [esc(s.label), fmtN(s.orders), fmtN(s.calls), fmtN(s.relay), pc(s.ringPct), pc(s.pickPct), pc(s.heardPct), wk(a.slotWeeks[i], 'pickPct'), wk(a.slotWeeks[i], 'heardPct')])) +
     '<p class="muted">This week = Monday to now, last week = Monday to Sunday, whatever period is picked above.</p></div>';
   const plats = '<div class="card"><h3>Swiggy vs Zomato</h3>' +
-    ntbl(['Platform', 'Orders', 'Calls made', 'Orders called', 'Ring %', 'Call %', 'Heard %', 'No number %', 'Plivo cost'],
-      a.byPlatform.map(p => [esc(p.platform), fmtN(p.orders), fmtN(p.calls), pc(p.calledPct), pc(p.ringPct), pc(p.pickPct), pc(p.heardPct), pc(p.noNumberPct), '$' + (p.usd || 0).toFixed(2)])) +
+    ntbl(['Platform', 'Orders', 'Calls made', 'Orders called', 'Masked-line calls', 'Ring %', 'Call %', 'Heard %', 'No number %', 'Plivo cost'],
+      a.byPlatform.map(p => [esc(p.platform), fmtN(p.orders), fmtN(p.calls), pc(p.calledPct), fmtN(p.relay), pc(p.ringPct), pc(p.pickPct), pc(p.heardPct), pc(p.noNumberPct), '$' + (p.usd || 0).toFixed(2)])) +
     '<p class="muted">Both platforms in this period, whichever platform is picked above.</p></div>';
   const stores = '<div class="card"><div class="row" style="margin-bottom:8px"><h3 style="margin:0">Stores <span class="muted" style="font-weight:400">' + a.stores.length + ' with orders</span></h3>' +
     '<input type="search" id="anQ" placeholder="Search store" value="' + esc(S.stQ) + '" style="margin-left:auto">' +
@@ -520,11 +522,11 @@ function drawAn(a) {
     '<div id="anSt" style="max-height:520px;overflow:auto"></div>' +
     '<p class="muted">Click a column to sort. Top / bottom 10 go by the sorted column, among stores with 10+ orders. Red: under 60% of orders called. Amber: heard % under 50%.</p></div>';
   box.innerHTML = insights + kpis + trend + slots + plats + stores +
-    '<p class="muted">Ring % = calls that rang the customer\'s phone ÷ calls made. Call % = calls the customer picked up ÷ calls made. Heard % = calls the customer stayed on for more than 10 s ÷ calls made. Orders called = calls made ÷ ' + esc(who) + ' orders. No number = the platform did not share the customer\'s number (or it was still awaited). Plivo cost = Plivo\'s own billing for every call made, at ₹81/$; a slot\'s or platform\'s share is split by its calls within each 2-hour billing window; … = still being collected. Slots go by the time the order reached the log.' +
+    '<p class="muted">Ring % / Call % / Heard % = calls that rang the customer\'s phone / were picked up / lasted more than 10 s, ÷ calls to customers\' own numbers. Masked-line calls = Swiggy orders called through Swiggy\'s relay line with the order PIN; Swiggy\'s line answers every one, so the customer\'s pickup is not visible and they are left out of those %s (they still count in calls made and cost). Orders called = calls made ÷ ' + esc(who) + ' orders. No number = the platform did not share the customer\'s number (or it was still awaited). Plivo cost = Plivo\'s own billing for every call made, at ₹81/$; a slot\'s or platform\'s share is split by its calls within each 2-hour billing window; … = still being collected. Slots go by the time the order reached the log.' +
     (a.missing ? ' ' + a.missing + (a.missing > 1 ? ' days' : ' day') + ' of this period are still being added up, so totals are short for now.' : '') + '</p>';
   drawStoreTable();
 }
-const ST_COLS = [['store', 'Store'], ['orders', 'Orders'], ['calls', 'Calls made'], ['calledPct', 'Orders called'], ['ringPct', 'Ring %'], ['pickPct', 'Call %'], ['heardPct', 'Heard %'], ['noNumber', 'No number']];
+const ST_COLS = [['store', 'Store'], ['orders', 'Orders'], ['calls', 'Calls made'], ['calledPct', 'Orders called'], ['relay', 'Masked-line'], ['ringPct', 'Ring %'], ['pickPct', 'Call %'], ['heardPct', 'Heard %'], ['noNumber', 'No number']];
 const ST_PCT = ['calledPct', 'ringPct', 'pickPct', 'heardPct'];
 // Only the table redraws, so the search box keeps focus.
 function drawStoreTable() {
@@ -538,7 +540,7 @@ function drawStoreTable() {
   }
   list = list.slice().sort(by);
   const cell = (x, f) => {
-    const flag = f === 'calledPct' && x.orders >= 5 && x.calledPct < 60 ? ' flag-bad' : f === 'heardPct' && x.calls >= 5 && x.heardPct < 50 ? ' flag-warn' : '';
+    const flag = f === 'calledPct' && x.orders >= 5 && x.calledPct < 60 ? ' flag-bad' : f === 'heardPct' && x.visible >= 5 && x.heardPct < 50 ? ' flag-warn' : '';
     return '<td class="n' + flag + '">' + (ST_PCT.indexOf(f) !== -1 ? pc(x[f]) : fmtN(x[f])) + '</td>';
   };
   el.innerHTML = '<table><tr>' + ST_COLS.map((c, i) => '<th class="sort' + (i ? ' n' : '') + '" data-act="stsort" data-k="' + c[0] + '">' + c[1] + (s.k === c[0] ? (s.asc ? ' ▲' : ' ▼') : '') + '</th>').join('') + '</tr>' +
