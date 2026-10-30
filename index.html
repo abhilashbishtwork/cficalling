@@ -343,7 +343,7 @@ function drawSummaryPlat() {
   const perCall = v => v.calls ? '₹' + (v.cost / v.calls).toFixed(2) : '–';
   const nn = v => slot ? '–' : pct(v.noNumber, v.orders);
   const mark = b => b.costPending ? ' <span class="muted" title="Plivo billing for ' + b.costPending + ' day(s) of this period is still being collected">…</span>' : '';
-  const row = (name, v, c, mk) => '<tr><td>' + name + '</td><td class="n">' + fmtN(v.orders) + '</td><td class="n">' + fmtN(v.calls) + ' ' + (c ? chg(v.calls, c.calls) : '') + '</td><td class="n">' + pct(v.calls, v.orders) +
+  const row = (name, v, c, mk) => '<tr><td>' + name + '</td><td class="n">' + fmtN(v.orders) +
     '</td><td class="n">' + pct(v.rang, v.orders) + '</td><td class="n">' + pct(v.picked, v.orders) + '</td><td class="n">' + pct(v.heard, v.orders) + '</td><td class="n">' + nn(v) +
     '</td><td class="n">' + money(v.cost) + (mk || '') + '</td><td class="n">' + perCall(v) + '</td></tr>';
   const kpi = (v, l) => '<div class="kpi"><div class="v">' + v + '</div><div class="l">' + l + '</div></div>';
@@ -359,14 +359,14 @@ function drawSummaryPlat() {
       kpi('₹' + fmtN(costTot.cost) + (pend ? ' <span class="muted" title="Plivo billing for part of this period is still being collected">…</span>' : ''),
         (acct ? 'Plivo cost, whole account' : 'Plivo cost') + ' · ' + perCall(total) + ' per call') +
     '</div>' +
-    '<div style="overflow:auto"><table><tr><th>Brand</th><th class="n">Orders</th><th class="n">Calls made</th><th class="n">Orders called</th><th class="n">Ring %</th><th class="n">Call %</th><th class="n">Heard %</th><th class="n">No number</th><th class="n">Plivo cost</th><th class="n">Cost / call</th></tr>' +
-      rows.map(b => b.error ? '<tr><td>' + esc(b.name) + '</td><td colspan="9" class="err">Couldn\'t read its call log</td></tr>' : row(esc(b.name), val(b), cmpOf(b), mark(b))).join('') +
+    '<div style="overflow:auto"><table><tr><th>Brand</th><th class="n">Orders</th><th class="n">Ring %</th><th class="n">Call %</th><th class="n">Heard %</th><th class="n">No number</th><th class="n">Cost</th><th class="n">Cost / call</th></tr>' +
+      rows.map(b => b.error ? '<tr><td>' + esc(b.name) + '</td><td colspan="7" class="err">Couldn\'t read its call log</td></tr>' : row(esc(b.name), val(b), cmpOf(b), mark(b))).join('') +
       '<tr style="font-weight:600">' + row('All brands', total, cmpAll).slice(4) +
     '</table></div>' +
     '<p class="muted">' + who + ' orders, ' + esc(d.label) + (cmpAll ? '; ▲/▼ vs ' + esc(d.cmpLabel) : '') + '. Updated ' + esc(d.asOf || '') + '. ' +
       (d.brands.some(b => b.missing) ? 'Some days are still being added up, so a few totals are short for now. ' : '') +
       'Ring % / Call % / Heard % = calls that rang the customer\'s phone / were picked up by the customer / lasted more than 10 s, ÷ orders. Swiggy masked-number calls can\'t show the customer\'s pickup, so they aren\'t counted as rung/picked/heard. ' +
-      'Orders called = calls made ÷ orders. Plivo cost = Plivo\'s own billing for every call made, in ₹ at ₹81/$, GST excluded' + (acct ? '; the total is the whole Plivo account, so it matches the Plivo console (brand rows may add up to a little less)' : '') +
+      'Cost = Plivo\'s own billing for every call made, in ₹ at ₹81/$, GST excluded' + (acct ? '; the total is the whole Plivo account, so it matches the Plivo console (brand rows may add up to a little less)' : '') +
       (slot ? '; a slot\'s cost is shared out by its calls within each 2-hour billing window' : '') + '. … = Plivo billing still being collected. No number = the platform did not share the customer\'s number' + (slot ? ' (all-day only)' : '') + '.</p></div>';
 }
 
